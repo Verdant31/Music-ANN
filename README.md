@@ -9,7 +9,7 @@ A ideia é ensinar uma rede neural a fazer o que um produtor faz à mão ao cria
 
 ## Como funciona
 
-1. **Pares de faixas.** `Musics/Normal` e `Musics/Lofi` guardam a mesma música nas duas versões, com o mesmo nome de arquivo. Hoje são três pares.
+1. **Pares de faixas.** `Musics/Normal` e `Musics/Lofi` guardam a mesma música nas duas versões, com o mesmo nome de arquivo. O experimento usou três pares, que não estão no repositório por terem direitos autorais.
 2. **Espectrogramas.** `fillDataset.ipynb` carrega cada faixa com o librosa e calcula o espectrograma de Mel, com 128 bandas, janela de 2.048 amostras e passo de 512. Todos são cortados ou completados para 8.509 quadros, cerca de 3 min 18 s de áudio, e cada par vira uma linha de `mel_spectrogram_pairs.csv`.
 3. **Rede.** `main.ipynb` lê o CSV, achata o espectrograma da versão original e define uma rede densa (250 → 150 → 50 → 110 → 80 → 8.509) para prever a versão lo-fi.
 
@@ -30,4 +30,4 @@ Para continuar:
 pip install librosa pandas numpy tensorflow notebook
 ```
 
-Os caminhos das pastas de música em `fillDataset.ipynb` apontam para `D:/music-ann` e precisam ser ajustados. O CSV gerado está no `.gitignore`.
+Coloque os pares de faixas em `Musics/Normal` e `Musics/Lofi`, em MP3 e com o mesmo nome nas duas pastas, e ajuste os caminhos em `fillDataset.ipynb`, que apontam para `D:/music-ann`. A pasta `Musics` e o CSV gerado estão no `.gitignore`.
