@@ -1,0 +1,68 @@
+[
+ {
+  "ini": 0.0,
+  "fim": 17.400696027841114,
+  "rotulo": "intro",
+  "papel": "intro"
+ },
+ {
+  "ini": 17.400696027841114,
+  "fim": 32.28129125165007,
+  "rotulo": "intro",
+  "papel": "intro"
+ },
+ {
+  "ini": 32.28129125165007,
+  "fim": 46.08184327373095,
+  "rotulo": "chorus",
+  "papel": "refrao"
+ },
+ {
+  "ini": 46.08184327373095,
+  "fim": 59.762390495619826,
+  "rotulo": "chorus",
+  "papel": "refrao"
+ },
+ {
+  "ini": 59.762390495619826,
+  "fim": 73.4429377175087,
+  "rotulo": "verse",
+  "papel": "verso"
+ },
+ {
+  "ini": 73.4429377175087,
+  "fim": 87.60350414016561,
+  "rotulo": "verse",
+  "papel": "verso"
+ },
+ {
+  "ini": 87.60350414016561,
+  "fim": 100.92403696147845,
+  "rotulo": "verse",
+  "papel": "verso"
+ },
+ {
+  "ini": 100.92403696147845,
+  "fim": 114.60458418336734,
+  "rotulo": "chorus",
+  "papel": "refrao"
+ },
+ {
+  "ini": 114.60458418336734,
+  "fim": 128.2851314052562,
+  "rotulo": "chorus",
+  "papel": "refrao"
+ },
+ {
+  "ini": 128.2851314052562,
+  "fim": 142.0856834273371,
+  "rotulo": "chorus",
+  "papel": "refrao"
+ },
+ {
+  "ini": 142.0856834273371,
+  "fim": 152.40609624384976,
+  "rotulo": "silence",
+  "papel": "final"
+ }
+]

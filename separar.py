@@ -35,9 +35,9 @@ def separar(modelo, caminho, dev):
     return para(voz), para(inst)
 
 
-def separar4(modelo, y, sr_entrada, dev):
-    """Separa em voz, bateria, baixo e o resto. Devolve um dict de áudios
-    mono na taxa do modelo (44,1 kHz)."""
+def separar4(modelo, y, sr_entrada, dev, estereo=False):
+    """Separa em voz, bateria, baixo e o resto. Devolve um dict de áudios na
+    taxa do modelo (44,1 kHz): mono, ou (2, n) com estereo=True."""
     if sr_entrada != modelo.samplerate:
         y = librosa.resample(y, orig_sr=sr_entrada, target_sr=modelo.samplerate)
     x = torch.from_numpy(np.stack([y, y]) if y.ndim == 1 else y).float()
@@ -46,6 +46,8 @@ def separar4(modelo, y, sr_entrada, dev):
     with torch.no_grad():
         fontes = apply_model(modelo, x[None].to(dev), split=True, overlap=0.25, progress=False)[0]
     fontes = fontes * (ref.std() + 1e-8) + ref.mean()
+    if estereo:
+        return {nome: fontes[i].cpu().numpy() for i, nome in enumerate(modelo.sources)}
     return {nome: fontes[i].mean(0).cpu().numpy() for i, nome in enumerate(modelo.sources)}
 
 

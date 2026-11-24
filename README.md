@@ -46,3 +46,7 @@ py -3.14 -m venv .venv
 Os loops de bateria vão em `dados/loops/` (os 800 primeiros do Lo-Fi Drums Dataset já bastam). Para refazer os experimentos, baixe os pares para `Musics/Normal/<nome>.mp3` e `Musics/Lofi/<nome>.mp3` e rode `separar.py`, `preparar_voz.py` e depois `treinar.py` ou `medir_ajustes.py` + `treinar_ajustes.py`. Outros scripts: `preparar_sintetico.py` (pares de controle), `conferir_alinhamento.py` (mede o alinhamento e grava um .wav estéreo para ouvir), `exemplos_producao.py` (página de comparação de ouvido).
 
 Os notebooks `fillDataset.ipynb` e `main.ipynb` são a versão de 2023, mantidos como registro.
+
+## Versões
+
+As versões que ficaram boas ganham uma tag no git e uma pasta em `versoes/`, com o passo a passo para recriar o resultado e o hash dos arquivos para conferir. A primeira é a [`v3-peace`](versoes/v3/README.md), com a base refeita e a lo-fi de *Peace* aprovada.
