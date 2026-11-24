@@ -1,2 +1,9 @@
 mel_spectrogram_pairs.csv
 Musics/
+.venv/
+__pycache__/
+dados/
+modelos/
+*.wav
+*.log
+exemplos/
