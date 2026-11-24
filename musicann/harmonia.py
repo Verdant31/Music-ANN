@@ -33,6 +33,11 @@ PERFIL_MAIOR = np.array([6.35, 2.23, 3.48, 2.33, 4.38, 4.09, 2.52, 5.19, 2.39, 3
 PERFIL_MENOR = np.array([6.33, 2.68, 3.52, 5.38, 2.60, 3.53, 2.54, 4.75, 3.98, 2.69, 3.34, 3.17])
 
 
+# Notas de cada tipo de acorde (com o "5": sem terça, para quando não dá
+# para saber se o acorde é maior ou menor).
+INTERVALOS = {**{t: iv for t, (iv, _) in TIPOS.items()}, "5": (0, 7), "6": (0, 4, 7)}
+
+
 def tonalidade(harmonia, baixo, sr, hop=4096):
     """Tom da música: (tônica 0-11, "maior" ou "menor", notas da escala).
     Na escala menor entra também a sensível (o acorde de dominante maior)."""
@@ -60,7 +65,15 @@ def _moldes():
     return rotulos, np.array(M)
 
 
-def acordes(harmonia, baixo, sr, hop=4096, troca=0.995, escala=None):
+def _setima_menor_clara(v, raiz):
+    """A sétima menor soa claramente (bem mais que a maior e com força perto
+    das notas do acorde)? v: chroma médio do trecho."""
+    b7, m7 = v[(raiz + 10) % 12], v[(raiz + 11) % 12]
+    acorde = np.mean([v[(raiz + i) % 12] for i in (0, 4, 7)])
+    return b7 > 1.5 * m7 and b7 > 0.4 * acorde
+
+
+def acordes(harmonia, baixo, sr, hop=4096, troca=0.995, escala=None, sensivel=None, duvida=0.02):
     """Acordes da música: lista de (ini s, fim s, raiz 0-11, tipo, confiança).
 
     harmonia: o resto (teclados, guitarras, samples); baixo: o baixo. O
@@ -85,7 +98,7 @@ def acordes(harmonia, baixo, sr, hop=4096, troca=0.995, escala=None):
     simples = np.array([0.03 if t in ("maj", "min") else 0 for _, t in rotulos])[:, None]
     fora = np.zeros((len(rotulos), 1))
     if escala:
-        fora[:, 0] = [-0.06 * sum((r + i) % 12 not in escala for i in TIPOS[t][0]) for r, t in rotulos]
+        fora[:, 0] = [-0.06 * fora_do_tom(r, t, escala, sensivel) for r, t in rotulos]
     nota = sim + bonus + simples + fora
     # Viterbi: ficar no mesmo acorde é muito mais provável que trocar.
     K = len(rotulos)
@@ -111,6 +124,17 @@ def acordes(harmonia, baixo, sr, hop=4096, troca=0.995, escala=None):
             j += 1
         raiz, tipo = rotulos[seq[i]]
         conf = float(sim[seq[i], i : j + 1].mean())
+        # Terça em dúvida (o acorde paralelo, maior <-> menor, quase empata):
+        # o teclado toca sem terça, que combina com os dois.
+        paralelo = {"maj": "min", "min": "maj", "maj7": "min7", "min7": "maj7", "7": "min7"}[tipo]
+        k_par = rotulos.index((raiz, paralelo))
+        margem = float((nota[seq[i], i : j + 1] - nota[k_par, i : j + 1]).mean())
+        if margem < duvida:
+            tipo = "5"
+        elif tipo == "maj" and _setima_menor_clara(c[:, i : j + 1].mean(1), raiz):
+            # Acorde maior em que soa mais a sétima menor que a maior (rock,
+            # blues, soul): o teclado toca 6/9 em vez de sétima maior.
+            tipo = "6"
         if calado[i : j + 1].mean() > 0.5:
             tipo = None
         saida.append((float(tempos[i]), float(tempos[j + 1]), raiz, tipo, conf))
@@ -119,7 +143,7 @@ def acordes(harmonia, baixo, sr, hop=4096, troca=0.995, escala=None):
 
 
 def nome(raiz, tipo):
-    return "N" if tipo is None else NOMES[raiz] + {"maj": "", "min": "m", "7": "7", "maj7": "maj7", "min7": "m7"}[tipo]
+    return "N" if tipo is None else NOMES[raiz] + {"maj": "", "min": "m", "7": "7", "maj7": "maj7", "min7": "m7", "5": "5", "6": "6"}[tipo]
 
 
 def notas_lofi(raiz, tipo, escala=None):
@@ -127,18 +151,22 @@ def notas_lofi(raiz, tipo, escala=None):
     mas só as que pertencem ao tom (uma nona fora do tom, como o lá natural
     num Sol menor dentro de Mi bemol maior, briga com a melodia)."""
     no_tom = lambda i: escala is None or (raiz + i) % 12 in escala
-    terca = 3 if tipo in ("min", "min7") else 4
-    iv = [0, terca]
+    iv = [0] if tipo == "5" else [0, 3 if tipo in ("min", "min7") else 4]
     if tipo != "7":
         iv.append(7)
     if tipo == "7":
         setima = 10
     elif tipo == "maj7":
         setima = 11
-    elif tipo == "min7":
-        setima = 10
-    else:  # tríade: a sétima que estiver no tom
-        setima = next((x for x in ((11, 10) if tipo == "maj" else (10, 11)) if no_tom(x)), None)
+    elif tipo in ("min7", "min", "5"):
+        setima = 10 if no_tom(10) else None
+    elif tipo == "maj" and no_tom(11):
+        setima = 11
+    else:
+        # "6" (acorde maior com sétima menor soando) ou sétima maior fora do
+        # tom: sexta no lugar da sétima (6/9), que não briga com a sétima
+        # menor dos acordes de rock e blues (O Calhambeque).
+        setima = 9 if no_tom(9) else None
     if setima is not None:
         iv.append(setima)
     if no_tom(14):
@@ -268,7 +296,7 @@ def onde_toca(lista_acordes, n, sr, conf_minima=0.6):
     return c
 
 
-def tom_pelos_acordes(lista_acordes, perfil=None, empate=0.97):
+def tom_pelos_acordes(lista_acordes, perfil=None, empate=0.95):
     """Tom em que cabem os acordes da música: fração do tempo de notas de
     acorde dentro de cada escala, mais (com `perfil`, a distribuição das
     notas do resto e do baixo) a fração das notas tocadas dentro dela.
@@ -282,25 +310,46 @@ def tom_pelos_acordes(lista_acordes, perfil=None, empate=0.97):
     total = sum(fim - ini for ini, fim, _, tipo, _ in lista_acordes if tipo is not None) + 1e-9
     notas = []
     for tonica in range(12):
-        for modo, graus in (("maior", (0, 2, 4, 5, 7, 9, 11)), ("menor", (0, 2, 3, 5, 7, 8, 10, 11))):
+        for modo, graus in (("maior", (0, 2, 4, 5, 7, 9, 11)), ("menor", (0, 2, 3, 5, 7, 8, 10))):
             escala = {(tonica + g) % 12 for g in graus}
+            sensivel = (tonica + 11) % 12 if modo == "menor" else None
             nota = 0.0
             for ini, fim, raiz, tipo, conf in lista_acordes:
                 if tipo is None:
                     continue
-                tons = [(raiz + i) % 12 for i in TIPOS[tipo][0]]
-                nota += (fim - ini) * np.mean([t in escala for t in tons]) / total
+                dentro = 1 - fora_do_tom(raiz, tipo, escala, sensivel) / len(INTERVALOS[tipo])
+                nota += (fim - ini) * dentro / total
                 # a tônica como acorde frequente desempata (Mi♭ maior x Dó menor)
                 if raiz == tonica and (tipo in ("maj", "maj7") if modo == "maior" else tipo in ("min", "min7")):
                     nota += 0.15 * (fim - ini) / total
             if perfil is not None:
                 nota += float(sum(perfil[i] for i in escala) / (perfil.sum() + 1e-9))
-            notas.append((nota, tonica, modo, escala))
+            notas.append((nota, tonica, modo, escala, sensivel))
     notas.sort(key=lambda x: -x[0])
-    nota, tonica, modo, escala = notas[0]
-    if notas[1][0] >= empate * nota:
-        escala = escala & notas[1][3]
-    return tonica, modo, escala
+    nota, tonica, modo, escala, sensivel = notas[0]
+    # O concorrente é o melhor tom com outras notas (Mi maior e Dó# menor
+    # são as mesmas notas e não contam).
+    outro = next((x for x in notas[1:] if x[3] != escala), None)
+    if outro is not None and outro[0] >= empate * nota:
+        escala = escala & outro[3]
+        sensivel = sensivel if sensivel == outro[4] else None
+    return tonica, modo, escala, sensivel
+
+
+def fora_do_tom(raiz, tipo, escala, sensivel=None):
+    """Quantas notas do acorde estão fora da escala. A sensível da escala
+    menor (sol# em lá menor) só vale como terça do acorde de dominante (Mi
+    maior em lá menor): antes ela valia para qualquer acorde e deixava passar,
+    em O Calhambeque, um Mi menor no lugar do Mi maior da banda."""
+    n = 0
+    for i in INTERVALOS[tipo]:
+        t = (raiz + i) % 12
+        if t in escala:
+            continue
+        if sensivel is not None and t == sensivel and i == 4 and (raiz + 4) % 12 == sensivel and tipo in ("maj", "7"):
+            continue
+        n += 1
+    return n
 
 
 def perfil_de_notas(harmonia, baixo, sr, hop=4096):

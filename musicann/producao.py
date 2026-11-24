@@ -585,8 +585,8 @@ def produzir(partes, ajustes=None, semente=0, pasta_loops="dados/loops", variar=
         from . import harmonia as hm
         n_orig = len(pm["other"])
         lista = hm.acordes(pm["other"], pm["bass"], SR)
-        tonica, modo, escala = hm.tom_pelos_acordes(lista, hm.perfil_de_notas(pm["other"], pm["bass"], SR))
-        lista = hm.acordes(pm["other"], pm["bass"], SR, escala=escala)
+        tonica, modo, escala, sensivel = hm.tom_pelos_acordes(lista, hm.perfil_de_notas(pm["other"], pm["bass"], SR))
+        lista = hm.acordes(pm["other"], pm["bass"], SR, escala=escala, sensivel=sensivel)
         tom_usado = f"{hm.NOMES[tonica]} {modo}"
         afinacao = float(librosa.estimate_tuning(y=pm["other"], sr=SR))
         passo = 2 if meio else 1
