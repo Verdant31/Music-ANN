@@ -60,19 +60,37 @@ def main():
     ap.add_argument("--sem-songformer", action="store_true",
                     help="usa a detecção de seções simples em vez do SongFormer")
     ap.add_argument("--modelo", default="htdemucs", help="modelo do Demucs (htdemucs ou htdemucs_ft)")
-    ap.add_argument("--bateria", default="auto", choices=["auto", "loop", "substituicao"],
-                    help="loop lo-fi encaixado ou substituição golpe a golpe (auto: escolhe pela música)")
+    ap.add_argument("--bateria", default=None, choices=["auto", "loop", "substituicao", "original"],
+                    help="loop lo-fi, substituição golpe a golpe ou a bateria original tratada (padrão: o do perfil)")
+    ap.add_argument("--perfil", default="rap", choices=sorted(producao.PERFIS),
+                    help="rap: base refeita (piano elétrico e baixo novos); brasileira: base original filtrada; pesada: rap com 808 (trap), a gravação original lenta e escura")
+    ap.add_argument("--resto-original-db", type=float, default=None,
+                    help="quanto o teclado/samples originais abaixam onde o piano novo toca (dB)")
+    ap.add_argument("--riff", action="store_true", help="toca o gancho do teclado original no piano elétrico")
+    ap.add_argument("--teclado", default=None, choices=["gancho", "progressao"],
+                    help="com --riff: gancho (o sample transcrito) ou progressao (os acordes da música, trocando junto com o baixo)")
+    ap.add_argument("--timbre", default=None, choices=["sintetizado", "gravado"],
+                    help="som do piano elétrico: sintetizado ou gravado (Rhodes jRhodes3d em dados/instrumentos)")
     args = ap.parse_args()
 
     y, _ = librosa.load(args.entrada, sr=producao.SR, mono=False, offset=args.inicio, duration=args.duracao)
     partes = stems_da_musica(args.entrada, y, args.inicio, args.duracao, args.modelo)
 
-    ajustes = producao.Ajustes()
+    ajustes = producao.ajustes_do_perfil(args.perfil)
+    if args.riff or args.teclado:
+        ajustes.riff = True
+    if args.teclado:
+        ajustes.teclado_estilo = args.teclado
+    if args.timbre:
+        ajustes.timbre = args.timbre
+    if args.resto_original_db is not None:
+        ajustes.resto_original_db = args.resto_original_db
     if args.velocidade:
         ajustes.velocidade = args.velocidade
     if args.corte:
         ajustes.corte_base = args.corte
-    ajustes.bateria = args.bateria
+    if args.bateria:
+        ajustes.bateria = args.bateria
     secoes = None
     if not args.sem_songformer:
         secoes = secoes_da_musica(args.entrada, y, args.inicio, args.duracao)
@@ -83,7 +101,7 @@ def main():
     import json
     json.dump(info["secoes"], open(os.path.splitext(saida)[0] + ".secoes.json", "w", encoding="utf-8"))
     # Velocidade e demais escolhas, para a página converter o tempo de cada versão.
-    json.dump(dict(info, velocidade=ajustes.velocidade), open(os.path.splitext(saida)[0] + ".info.json", "w", encoding="utf-8"),
+    json.dump(dict(info, velocidade=ajustes.velocidade, perfil=args.perfil), open(os.path.splitext(saida)[0] + ".info.json", "w", encoding="utf-8"),
               ensure_ascii=False, indent=1)
     print(f"gravado: {saida} | {info}")
 

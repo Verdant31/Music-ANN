@@ -90,6 +90,8 @@ def main():
     ap.add_argument("--versoes", nargs="+", default=[""],
                     help="sufixos das versões lo-fi de cada música (<nome><sufixo>.wav)")
     ap.add_argument("--rotulos", nargs="+", default=None, help="nome de cada versão na página")
+    ap.add_argument("--referencia", nargs="+", default=[], metavar="MUSICA|ARQUIVO|ROTULO",
+                    help="faixa de referência (por exemplo, uma lo-fi do YouTube) na seção da música, sem sincronizar")
     args = ap.parse_args()
     veloc = Ajustes().velocidade
 
@@ -100,12 +102,22 @@ def main():
         faixas = ""
         for sufixo, rotulo in zip(args.versoes, rotulos):
             base = nome + sufixo
+            if not os.path.exists(os.path.join(args.pasta, base + ".wav")):
+                continue  # versão que essa música não tem
             lofi = mp3_base64(os.path.join(args.pasta, base + ".wav"), os.path.join(args.pasta, base + ".mp3"), args.kbps)
             arq_info = os.path.join(args.pasta, base + ".info.json")
             v = json.load(open(arq_info, encoding="utf-8"))["velocidade"] if os.path.exists(arq_info) else veloc
             faixas += (f'<div class="faixa"><span>{html.escape(rotulo)}<br><small>{html.escape(mapa_secoes(args.pasta, nome, base, v))}</small></span>'
                        f'<audio controls preload="none" data-par="{k}" data-fator="{1 / v:.6f}" '
                        f'src="data:audio/mpeg;base64,{lofi}"></audio></div>')
+        for r, ref in enumerate(args.referencia):
+            m_ref, arq_ref, rot_ref = ref.split("|")
+            if m_ref != nome:
+                continue
+            dados = mp3_base64(arq_ref, os.path.join(args.pasta, f"{nome}_referencia{r}.mp3"), args.kbps)
+            faixas = (f'<div class="faixa"><span>{html.escape(rot_ref)}<br><small>não anda junto com as outras</small></span>'
+                      f'<audio controls preload="none" data-par="ref{k}_{r}" data-fator="1" '
+                      f'src="data:audio/mpeg;base64,{dados}"></audio></div>') + faixas
         secoes_html += (
             f"<section><h2>{html.escape(nome.replace('_', ' '))}</h2>"
             f'<div class="faixa"><span>Original</span><audio controls preload="none" data-par="{k}" data-fator="1" '

@@ -76,6 +76,82 @@ class Ajustes:
     baixo_novo: bool = True        # baixo novo colado no bumbo do loop
     baixo_novo_db: float = 0.0     # volume do baixo novo em relação ao baixo original
     baixo_original_db: float = -15.0  # quanto o baixo original abaixa onde o baixo novo toca
+    # O gancho do teclado/sample original (quando ele é rítmico) tocado no
+    # piano elétrico, nota a nota (harmonia.riff). Em teste: Neighbors e
+    # Blinding Lights.
+    riff: bool = False
+    # O piano inteiro quando o riff toca. Ouvindo a B: "um pouquinho alto",
+    # depois "muito piano": o maior problema era a quantidade de notas, não o
+    # volume ("se abaixar demais, não dá para ouvir"); ver harmonia.riff.
+    riff_db: float = -4.0
+    piano_sob_voz_db: float = -5.0 # com o riff: o piano abaixa isso enquanto o rapper canta
+    # Quando o resto original é um ciclo que se repete (o sample de 4r Da
+    # Squaw), o --riff toca esse ciclo como uma frase (harmonia.gancho): ela
+    # substitui o sample, então fica no volume dele e quase não recua sob a
+    # voz (com o riff a -9 dB sob a voz, "não dá para ouvir o piano" e a
+    # música "fica parecendo a original"). Em 4r Da Squaw o sample fica
+    # 3,8 dB abaixo da voz onde o rapper canta; com -1,5/-1,5 o piano ficava
+    # 11,7 dB abaixo (o teto da base tira mais 2,6 dB); com +2/-0,5, 8,5.
+    # Com +3 (7,9 abaixo) a melodia ficou "muito boa", mas "dá pra baixar
+    # um pouquinho mais": +0,5 (o piano 1,5 dB mais baixo; a base se
+    # reequilibra e come parte da mudança). Ouvindo: "ainda dá para baixar
+    # um pouquinho mais": -1,5.
+    gancho_db: float = -1.5
+    gancho_sob_voz_db: float = -0.5
+    # A frase igual nos 33 ciclos soou "um pouquinho repetitiva": com
+    # variar, o arranjo muda por seção e a cada 8 compassos (harmonia.gancho).
+    gancho_variar: bool = True
+    # Volume mínimo da frase contra a voz onde o rapper canta (antes da
+    # mixagem; ver o piso em produzir). None desliga.
+    gancho_piso_voz_db: float = -5.0  # na 4r aprovada: -4,6
+    # Com o riff: "gancho" transcreve o sample que se repete (4r Da Squaw,
+    # aprovada); "progressao" toca uma progressão simples nos acordes da
+    # música, como as lo-fis de rap do YouTube (harmonia.progressao). Os dois
+    # usam o mesmo volume (gancho_db, gancho_sob_voz_db e o piso).
+    teclado_estilo: str = "gancho"
+    # Chorus, sala e agudos amaciados no piano elétrico (cor_do_teclado),
+    # junto com o timbre novo (harmonia.rhodes): o som do piano era "o que
+    # está ruim" (2026-11-25).
+    cor_teclado: bool = True
+    # Som do piano elétrico: "sintetizado" (harmonia.rhodes) ou "gravado"
+    # (amostras de um Rhodes de verdade, harmonia.rhodes_gravado; precisa de
+    # dados/instrumentos, fora do git). O sintetizado, mesmo refeito, ainda
+    # soou "ruim"; o gravado separa o timbre das notas (2026-11-25).
+    timbre: str = "sintetizado"
+    perda_maxima_db: float = 3.0   # a base nunca fica mais que isso abaixo do equilíbrio original
+
+
+# Perfis por estilo. "rap" é a base refeita (a lo-fi de Peace, tag
+# v3-peace). "brasileira" volta ao jeito anterior, com a base original
+# filtrada: nas brasileiras (samba, MPB, soul tocado por banda) a graça está
+# no violão, no suingue e na banda, e o piano elétrico com batida de hip-hop
+# no lugar deixou as músicas "esquisitas" (Oceano, Ela Partiu, O
+# Calhambeque). Ficam as correções que valem para todas (buracos da voz,
+# pratos, bateria original abafada onde o loop não toca).
+PERFIS = {
+    "rap": {},
+    "brasileira": dict(teclado=False, baixo_novo=False, velocidade=0.97, chiado=0.006, voz_sala=0.10,
+                       volume_bateria=-25.0, volume_base=-21.0, volume_voz=-18.0, mais_que_original=-99.0,
+                       bateria_original_db=-9.0),
+    # Rap mais pesado (808 na frente, trap), como Chill Bill. A lo-fi mais
+    # ouvida dela no YouTube (LLusion, 2,4 mi) não refaz a base: é a própria
+    # gravação a 0,78 da velocidade (o tom desce junto), com a mistura duas
+    # vezes mais escura (corte em 1,3 kHz contra 2,6 kHz) e a voz 7 dB mais
+    # atrás e mais escura; bateria, 808 e assobio são os originais. Aqui:
+    # o mesmo caminho, um pouco menos lento e com a voz ainda clara.
+    "pesada": dict(teclado=False, baixo_novo=False, riff=False, bateria="original", velocidade=0.80,
+                   corte_base=2500.0, voz_agudos_hz=4500.0, voz_agudos_db=-6.0,
+                   voz_sala=0.22, chiado=0.016, mais_que_original=3.0, teto_base=20.0, teto_bateria=20.0,
+                   corte_final=8000.0, pratos_db=2.0,  # o chimbal acompanha a bateria, que fica 5 dB mais forte
+                   graves_db=-4.5),  # 808 um pouco menos marcante (ouvindo: "diminuiria UM POUQUINHO o grave")
+}
+
+
+def ajustes_do_perfil(nome="rap", **extra):
+    a = Ajustes(**PERFIS[nome])
+    for k, v in extra.items():
+        setattr(a, k, v)
+    return a
 
 
 # ---------- efeitos ----------
@@ -106,6 +182,24 @@ def wow_flutter(y, prof, rng):
     if y.ndim == 2:
         return np.stack([np.interp(t + atraso, t, c) for c in y])
     return np.interp(t + atraso, t, y)
+
+
+def cor_do_teclado(y, rng=None):
+    """O tratamento do piano elétrico nas lo-fis: chorus leve (cada canal com
+    um atraso de ~7 ms oscilando devagar, o "vai e vem" do Rhodes com efeito),
+    um pouco de sala e os agudos amaciados. Mesmo volume (RMS) da entrada,
+    para não mexer nos níveis já ajustados (gancho_db, piso)."""
+    rng = rng or np.random.default_rng(0)
+    if not np.any(y):
+        return y
+    t = np.arange(y.shape[1]) / SR
+    saida = np.empty_like(y)
+    for c in range(2):
+        atraso = (0.007 + 0.0015 * np.sin(2 * np.pi * (0.55 + 0.1 * c) * t + rng.uniform(0, 2 * np.pi))) * SR
+        saida[c] = 0.8 * y[c] + 0.35 * np.interp(np.arange(y.shape[1]) - atraso, np.arange(y.shape[1]), y[c])
+    saida = reverb(saida, 0.15, rt60=0.9, rng=rng)
+    saida = passa_baixa(saida, 5500, ordem=2)
+    return saida * 10 ** ((rms_db(y) - rms_db(saida)) / 20)
 
 
 def reverb(y, mix, rt60=1.6, rng=None):
@@ -357,7 +451,7 @@ def _correlacao(a, b, defasagem):
     return float(np.dot(x, y) / (np.linalg.norm(x) * np.linalg.norm(y) + 1e-9))
 
 
-def grade_regular(batidas, tolerancia=0.025):
+def grade_regular(batidas, tolerancia=0.025, minimo=0.85):
     """Se as batidas detectadas cabem numa grade de andamento fixo (desvio
     menor que `tolerancia` segundos), devolve a grade perfeitamente regular.
 
@@ -369,7 +463,39 @@ def grade_regular(batidas, tolerancia=0.025):
     i = np.arange(len(batidas))
     p = np.polyfit(i, batidas, 1)
     regular = np.polyval(p, i)
-    return regular if np.std(batidas - regular) < tolerancia else batidas
+    if np.std(batidas - regular) < tolerancia:
+        return regular
+    # Um tropeço do detector (um trecho em que ele perde a batida) bastava
+    # para a música toda ir para a substituição: em 4r Da Squaw, 89% das
+    # batidas caem a menos de 25 ms de uma grade fixa de 144 bpm (o resto é
+    # um tropeço de 20 s), contra 10-15% nas gravações ao vivo (O
+    # Calhambeque, Ela Partiu, United In Grief). Count Me Out (81%, com a
+    # batida derivando ±30 ms) fica com a grade detectada. A reta é refeita
+    # sem os tropeços; onde o loop ainda não bater, a rede de segurança tira
+    # o loop do trecho.
+    reta = _reta_sem_tropecos(batidas, tolerancia)
+    if reta is None:
+        return batidas
+    return reta if np.mean(np.abs(batidas - reta) < tolerancia) >= minimo else batidas
+
+
+def _reta_sem_tropecos(batidas, tolerancia=0.025):
+    """A grade fixa que mais batidas seguem: a reta refeita sem as que fogem
+    mais de 3x a tolerância (ou None, se sobrarem poucas)."""
+    i = np.arange(len(batidas))
+    usar = np.ones(len(batidas), bool)
+    for _ in range(3):
+        if usar.sum() < 9:
+            return None
+        p = np.polyfit(i[usar], batidas[usar], 1)
+        usar = np.abs(batidas - np.polyval(p, i)) < 3 * tolerancia
+    return np.polyval(p, i)
+
+
+def na_grade(batidas, tolerancia=0.025):
+    """Fração das batidas a menos de `tolerancia` s da grade fixa."""
+    reta = _reta_sem_tropecos(np.asarray(batidas), tolerancia)
+    return 0.0 if reta is None else float(np.mean(np.abs(batidas - reta) < tolerancia))
 
 
 def _bandas(y):
@@ -482,7 +608,7 @@ def encaixar(bateria_original, ritmo, loops, permitir_meio_tempo=True, n_loops=2
 
 # ---------- montagem ----------
 
-def produzir(partes, ajustes=None, semente=0, pasta_loops="dados/loops", variar=True, secoes_externas=None):
+def produzir(partes, ajustes=None, semente=0, pasta_loops="dados/loops", variar=True, secoes_externas=None, camadas=None):
     """partes: dict com 'vocals', 'drums', 'bass', 'other' (mono ou estéreo, 44,1 kHz).
 
     Com variar=True, muda o tratamento ao longo da música, como um produtor
@@ -497,6 +623,8 @@ def produzir(partes, ajustes=None, semente=0, pasta_loops="dados/loops", variar=
       final         bateria sai em 2 compassos, filtro fechando até ~450 Hz
     secoes_externas: lista {ini, fim, papel} na linha do tempo original (por
     exemplo, do SongFormer); sem ela usa a detecção simples de arranjo.py.
+    camadas: dict opcional que recebe cada camada da mixagem (no tempo da
+    lo-fi) e a grade de batidas, para medir o encaixe entre elas.
     """
     from . import arranjo, reparo
     a = ajustes or Ajustes()
@@ -509,9 +637,15 @@ def produzir(partes, ajustes=None, semente=0, pasta_loops="dados/loops", variar=
     golpes_orig = golpes_fortes(pm["drums"], 0.5)
     for k in ("vocals", "other"):
         estereo[k] = reparo.tapar_buracos(estereo[k], golpes_orig, SR)
-    voz, baixo, resto = (desacelerar(estereo[k], a.velocidade, a.manter_tom) for k in ("vocals", "bass", "other"))
+    # Assobio (ou flauta) que a separação pôs na voz: vai para a base, que é
+    # onde ele recebe o tratamento lo-fi (em Chill Bill ele passava limpo).
+    estereo["vocals"], assobio = reparo.separar_assobio(estereo["vocals"], SR)
+    tem_assobio = bool(np.any(assobio))
+    voz, baixo, resto, assobio = (desacelerar(x, a.velocidade, a.manter_tom)
+                                  for x in (estereo["vocals"], estereo["bass"], estereo["other"], assobio))
     n = min(voz.shape[1], baixo.shape[1], resto.shape[1])
     voz, baixo, resto = voz[:, :n], baixo[:, :n], resto[:, :n]
+    assobio = np.pad(assobio[:, :n], ((0, 0), (0, max(0, n - assobio.shape[1]))))
     harmonia = baixo + resto
     duracao = n / SR
 
@@ -545,6 +679,15 @@ def produzir(partes, ajustes=None, semente=0, pasta_loops="dados/loops", variar=
     bat_cru = np.pad(bat_cru, ((0, 0), (0, n - bat_cru.shape[1])))
     bat_orig = saturar(passa_baixa(bat_cru, 4500), 1.8)
     bat_a, bumbos = montar_bateria(n, batidas, fase, enc["loop_bpm"], enc["loop"], meio, swing_m, swing_l)
+    # Ajuste fino: o encaixe acima mede os golpes de 11,6 em 11,6 ms e pelo
+    # pico de cada um; medidos no começo da subida (passo de 1,5 ms), os
+    # golpes do loop ainda chegavam 8-12 ms depois dos da bateria original
+    # (e da voz, que segue a original). A grade anda esse tanto.
+    d_fino = defasagem_fina(bat_a, bat_cru)
+    if abs(d_fino) > 0.002:
+        batidas, bat_ref = batidas - d_fino, bat_ref - d_fino * a.velocidade
+        compassos = batidas[fase::compasso]
+        bat_a, bumbos = montar_bateria(n, batidas, fase, enc["loop_bpm"], enc["loop"], meio, swing_m, swing_l)
     # A camada da bateria original só fica por baixo se casa com o loop; senão
     # as duas "tropeçam" uma na outra.
     _, desvio_orig, _ = defasagem_fortes_ms(bat_a, bat_orig)
@@ -554,13 +697,21 @@ def produzir(partes, ajustes=None, semente=0, pasta_loops="dados/loops", variar=
     # balanço próprio) soa descompassado mesmo com os golpes na grade, como em
     # O Calhambeque. Nesses casos, substituição de bateria: cada golpe do
     # baterista original vira uma amostra lo-fi no mesmo instante.
-    i_b = np.arange(len(enc["batidas"]))
-    andamento_fixo = bool(np.std(enc["batidas"] - np.polyval(np.polyfit(i_b, enc["batidas"], 1), i_b)) < 0.025)
+    # Andamento fixo: a maior parte das batidas (>= metade) a menos de 25 ms
+    # de uma grade fixa. Em Count Me Out a batida deriva ±30 ms entre
+    # seções (81% na grade) e a substituição saía horrível: cada ataque
+    # da bateria trap virava uma caixa lo-fi, alta e picotada. Com o loop,
+    # seguindo as batidas detectadas, a bateria encaixa (0,4-1,0 nos
+    # trechos com bateria). As gravações ao vivo ficam em 9-15%.
+    andamento_fixo = na_grade(enc["batidas"]) >= 0.5
     usar_loop = enc["nota"] >= a.encaixe_minimo and (andamento_fixo or a.bateria == "loop")
-    if a.bateria == "substituicao":
+    if a.bateria in ("substituicao", "original"):
         usar_loop = False
     modo_bateria = "loop"
-    if not usar_loop:
+    if not usar_loop and a.bateria == "original":
+        bat_a, bumbos = bat_orig, []
+        modo_bateria = "original tratada"
+    elif not usar_loop:
         from . import substituir
         golpes = substituir.classificar(mono(bat_cru))
         amostras = substituir.amostras_do_loop(librosa.load(enc["loop"], sr=SR, mono=False)[0])
@@ -573,43 +724,6 @@ def produzir(partes, ajustes=None, semente=0, pasta_loops="dados/loops", variar=
         else:
             bat_a, bumbos = bat_orig, []
             modo_bateria = "original tratada"
-
-    # Base nova, como nos remixes lo-fi do YouTube (dados/estudo/: 93% deles
-    # trocam o teclado/samples e 86% trocam o baixo): os acordes da música
-    # num piano elétrico (musicann/harmonia.py) no lugar do resto original, e
-    # um baixo novo colado no bumbo do loop no lugar do baixo original.
-    acordes_usados, tom_usado = "", ""
-    toca_teclado = 0.0
-    teclas_l = baixo_novo_l = None
-    if a.teclado:
-        from . import harmonia as hm
-        n_orig = len(pm["other"])
-        lista = hm.acordes(pm["other"], pm["bass"], SR)
-        tonica, modo, escala, sensivel = hm.tom_pelos_acordes(lista, hm.perfil_de_notas(pm["other"], pm["bass"], SR))
-        lista = hm.acordes(pm["other"], pm["bass"], SR, escala=escala, sensivel=sensivel)
-        tom_usado = f"{hm.NOMES[tonica]} {modo}"
-        afinacao = float(librosa.estimate_tuning(y=pm["other"], sr=SR))
-        passo = 2 if meio else 1
-        grade, n_antes = hm.grade_completa(bat_ref, n_orig / SR) if andamento_fixo else (bat_ref, 0)
-        groove = grade[(fase + n_antes) % (4 * passo) :: passo]
-        teclas = hm.teclado(lista, groove, n_orig, SR, afinacao, rng, escala=escala)
-        toca = hm.onde_toca(lista, n_orig, SR)
-        para_lofi = lambda c: arranjo.suavizar(np.interp(np.arange(n) * a.velocidade, np.arange(n_orig), c), SR, ms=300)
-        if toca.any() and np.any(teclas):
-            # Mesmo volume do resto original nos trechos em que o teclado toca.
-            teclas *= 10 ** ((rms_db(estereo["other"][:, toca > 0]) + a.teclado_db - rms_db(teclas[:, toca > 0])) / 20)
-            teclas_l = desacelerar(teclas, a.velocidade, a.manter_tom)[:, :n]
-            teclas_l = np.pad(teclas_l, ((0, 0), (0, n - teclas_l.shape[1])))
-            toca_l = para_lofi(toca)
-            ganho_resto = 1 - toca_l * (1 - 10 ** (a.resto_original_db / 20))
-            toca_teclado = float(toca_l.mean())
-            acordes_usados = " ".join(hm.nome(r, t) for i0, i1, r, t, c in lista if i1 - i0 > 0.4 and t is not None and c >= 0.6)[:200]
-        if usar_loop and a.baixo_novo and len(bumbos):
-            bn, notas_bn = hm.linha_de_baixo(lista, np.asarray(bumbos) * a.velocidade, n_orig, SR, afinacao, rng=rng)
-            if notas_bn.any():
-                bn *= 10 ** ((rms_db(pm["bass"][notas_bn > 0]) + a.baixo_novo_db - rms_db(bn[notas_bn > 0])) / 20)
-                bn = desacelerar(bn, a.velocidade, a.manter_tom)[:n]
-                baixo_novo_l = (np.stack([np.pad(bn, (0, n - len(bn)))] * 2), para_lofi(notas_bn))
 
     dur_compasso = float(np.median(np.diff(compassos))) if len(compassos) > 1 else 2.0
     secoes = [dict(ini=0.0, fim=duracao, papel="verso")]
@@ -628,6 +742,106 @@ def produzir(partes, ajustes=None, semente=0, pasta_loops="dados/loops", variar=
         bat_b, _ = montar_bateria(n, batidas, fase, enc["loop2_bpm"], enc["loop2"], meio, swing_m, swing_l)
         no_b = arranjo.suavizar(arranjo.curva_por_papel(n, SR, secoes, dict(verso=0, refrao=1, instrumental=1)), SR, 15)
         bateria = bat_a * (1 - no_b) + nivel(bat_b, 20 * np.log10(np.sqrt(np.mean(bat_a**2)) + 1e-12)) * no_b
+    # Base nova, como nos remixes lo-fi do YouTube (dados/estudo/: 93% deles
+    # trocam o teclado/samples e 86% trocam o baixo): os acordes da música
+    # num piano elétrico (musicann/harmonia.py) no lugar do resto original, e
+    # um baixo novo colado no bumbo do loop no lugar do baixo original.
+    acordes_usados, tom_usado = "", ""
+    riff_toca = 0.0
+    info_gancho = None
+    timbre_usado = None
+    toca_teclado = 0.0
+    teclas_l = baixo_novo_l = None
+    if a.teclado:
+        from . import harmonia as hm
+        timbre_usado = hm.usar_timbre(a.timbre)
+        n_orig = len(pm["other"])
+        lista = hm.acordes(pm["other"], pm["bass"], SR)
+        tonica, modo, escala, sensivel = hm.tom_pelos_acordes(lista, hm.perfil_de_notas(pm["other"], pm["bass"], SR))
+        lista = hm.acordes(pm["other"], pm["bass"], SR, escala=escala, sensivel=sensivel)
+        tom_usado = f"{hm.NOMES[tonica]} {modo}"
+        afinacao = float(librosa.estimate_tuning(y=pm["other"], sr=SR))
+        passo = 2 if meio else 1
+        grade, n_antes = hm.grade_completa(bat_ref, n_orig / SR) if andamento_fixo else (bat_ref, 0)
+        groove = grade[(fase + n_antes) % (4 * passo) :: passo]
+        # Os acordes entram junto com os golpes do loop, e não na grade: o
+        # loop tem o próprio atraso dentro de cada batida.
+        alvos = None
+        tempos_musica = groove.copy()  # os tempos da música, sem o atraso do loop
+        if usar_loop:
+            groove = groove + atraso_na_grade(bat_a, batidas) * a.velocidade
+            # Cada toque do piano que cai a menos de 35 ms de onde a bateria
+            # bate vai para lá: piano e bateria batem juntos.
+            alvos = posicoes_do_groove(bateria, batidas) * a.velocidade
+        teclas = hm.teclado(lista, groove, n_orig, SR, afinacao, rng, escala=escala, alvos=alvos)
+        toca = hm.onde_toca(lista, n_orig, SR)
+        para_lofi = lambda c: arranjo.suavizar(np.interp(np.arange(n) * a.velocidade, np.arange(n_orig), c), SR, ms=300)
+        if toca.any() and np.any(teclas):
+            # Mesmo volume do resto original nos trechos em que o teclado toca.
+            teclas *= 10 ** ((rms_db(estereo["other"][:, toca > 0]) + a.teclado_db - rms_db(teclas[:, toca > 0])) / 20)
+            if a.riff:
+                # Onde o rapper canta (no tempo da música): ali o piano toca
+                # menos e mais baixo, respondendo à voz em vez de tocar por cima.
+                rms_v = librosa.feature.rms(y=pm["vocals"], hop_length=512)[0]
+                canta = arranjo.suavizar((rms_v > 0.15 * np.percentile(rms_v, 95)).astype(float), SR / 512, ms=250)
+                canta = np.interp(np.arange(n_orig), np.arange(len(canta)) * 512, canta)
+                # O ciclo que se repete, tocado como frase. Sem ciclo, ficam os
+                # acordes: o riff nota a nota (harmonia.riff) foi rejeitado
+                # ("notas jogadas sem sentido", 4r Da Squaw, 2026-11-25).
+                secoes_orig = [dict(s, ini=s["ini"] * a.velocidade, fim=s["fim"] * a.velocidade) for s in secoes]
+                if a.teclado_estilo == "progressao":
+                    g = hm.progressao(lista, tempos_musica, n_orig, SR, escala, afinacao, rng, alvos=alvos, canta=canta,
+                                      secoes=secoes_orig, variar=a.gancho_variar)
+                else:
+                    g = hm.gancho(pm["other"], SR, tempos_musica, afinacao, rng, alvos=alvos, canta=canta,
+                                  secoes=secoes_orig, variar=a.gancho_variar)
+                rf, onde_rf = (g[0], g[1]) if g is not None else (None, np.zeros(1))
+                if g is not None:
+                    info_gancho = g[2]
+                    nivel_db, sob_voz_db = a.gancho_db, a.gancho_sob_voz_db
+                if onde_rf.any():
+                    # O riff no volume do resto original onde ele toca; os
+                    # acordes saem dali (o riff vira o teclado: com os dois,
+                    # em 4r Da Squaw, era "acorde de piano o tempo todo").
+                    rf *= 10 ** ((rms_db(estereo["other"][:, onde_rf > 0]) + a.teclado_db - rms_db(rf[:, onde_rf > 0])) / 20)
+                    teclas = teclas * (1 - arranjo.suavizar(onde_rf, SR, ms=300)) + rf
+                    # E o piano recua enquanto o rapper canta e volta nas pausas.
+                    teclas = teclas * (1 - (1 - 10 ** (sob_voz_db / 20)) * canta) * 10 ** (nivel_db / 20)
+                    # Piso: a frase nunca fica, contra a voz, mais baixa que na
+                    # 4r Da Squaw aprovada. Em Neighbors o resto original fica
+                    # 11,5 dB abaixo da voz (na 4r, 2,7), e a frase no volume
+                    # dele ficava 21 dB abaixo da voz: "não dá para ouvir".
+                    fala = (canta > 0.5) & (onde_rf > 0)
+                    if fala.sum() > SR:
+                        rel = rms_db(teclas[:, fala]) - rms_db(estereo["vocals"][:, fala])
+                        info_gancho["piano_voz_db"] = round(rel, 1)
+                        if a.gancho_piso_voz_db is not None and rel < a.gancho_piso_voz_db:
+                            sobe = 10 ** ((a.gancho_piso_voz_db - rel) / 20)
+                            teclas = teclas * (1 + (sobe - 1) * arranjo.suavizar(onde_rf, SR, ms=300))
+                            info_gancho["piano_voz_db"] = round(rms_db(teclas[:, fala]) - rms_db(estereo["vocals"][:, fala]), 1)
+                    toca = np.maximum(toca, onde_rf)
+                    riff_toca = float(onde_rf.mean())
+            if a.cor_teclado:
+                teclas = cor_do_teclado(teclas)
+            teclas_l = desacelerar(teclas, a.velocidade, a.manter_tom)[:, :n]
+            teclas_l = np.pad(teclas_l, ((0, 0), (0, n - teclas_l.shape[1])))
+            toca_l = para_lofi(toca)
+            ganho_resto = 1 - toca_l * (1 - 10 ** (a.resto_original_db / 20))
+            toca_teclado = float(toca_l.mean())
+            acordes_usados = " ".join(hm.nome(r, t) for i0, i1, r, t, c in lista if i1 - i0 > 0.4 and t is not None and c >= 0.6)[:200]
+
+    # Baixo novo colado nos bumbos que o loop toca de fato (no refrão, os do
+    # segundo loop). Antes ia nos tempos 1 e 3 da grade, do primeiro loop
+    # na música toda: chegava ~15 ms depois do bumbo e, onde o loop tem
+    # outro desenho de bumbo, fora dele.
+    if usar_loop and a.teclado and a.baixo_novo and acordes_usados:
+        bumbos = list(ataques_finos(passa_baixa(mono(bateria), 150), 0.5))
+        if bumbos:
+            bn, notas_bn = hm.linha_de_baixo(lista, np.asarray(bumbos) * a.velocidade, n_orig, SR, afinacao, rng=rng)
+            if notas_bn.any():
+                bn *= 10 ** ((rms_db(pm["bass"][notas_bn > 0]) + a.baixo_novo_db - rms_db(bn[notas_bn > 0])) / 20)
+                bn = desacelerar(bn, a.velocidade, a.manter_tom)[:n]
+                baixo_novo_l = (np.stack([np.pad(bn, (0, n - len(bn)))] * 2), para_lofi(notas_bn))
     # Curvas de automação a partir do perfil de cada papel (arranjo.PERFIL).
     papel_val = lambda i: {p: arranjo.PERFIL[p][i] for p in arranjo.PERFIL}
     g_bat = arranjo.curva_por_papel(n, SR, secoes, papel_val(0))
@@ -686,7 +900,7 @@ def produzir(partes, ajustes=None, semente=0, pasta_loops="dados/loops", variar=
         bn, notas_bn = baixo_novo_l
         uso = notas_bn * arranjo.suavizar((g_bat > 0.5).astype(float), SR, ms=200)
         harmonia = harmonia - baixo * uso * (1 - 10 ** (a.baixo_original_db / 20)) + bn * uso
-    harmonia = harmonia + bat_cru * orig_na_base
+    harmonia = harmonia + bat_cru * orig_na_base + assobio
 
     base = passa_alta(harmonia, 35)
     base = np.stack([arranjo.passa_baixa_variavel(c, corte, SR) for c in base])
@@ -715,8 +929,13 @@ def produzir(partes, ajustes=None, semente=0, pasta_loops="dados/loops", variar=
     r_voz = rms_db(estereo["vocals"])
     vol_bat = a.volume_voz + float(np.clip(rms_db(estereo["drums"]) - r_voz + a.mais_que_original,
                                            a.volume_bateria - a.volume_voz, a.teto_bateria))
-    vol_base = a.volume_voz + float(np.clip(rms_db(estereo["bass"] + estereo["other"]) - r_voz + a.mais_que_original,
-                                            a.volume_base - a.volume_voz, a.teto_base))
+    # O teto da base deixa a voz na frente, mas sem tirar mais que
+    # `perda_maxima_db` do equilíbrio da original: em Chill Bill o 808 deixa
+    # a base 11,7 dB acima da voz, e o teto de +2 dB punha a voz 8 dB mais à
+    # frente que na original (a lo-fi do YouTube a põe 7 dB mais atrás).
+    base_orig = rms_db(estereo["bass"] + estereo["other"]) - r_voz
+    vol_base = a.volume_voz + float(np.clip(base_orig + a.mais_que_original, a.volume_base - a.volume_voz,
+                                            max(a.teto_base, base_orig - a.perda_maxima_db)))
     nv_bat = nivel(bateria, vol_bat) if np.any(bateria) else bateria
     # Pratos e chimbal da bateria original, no volume que tinham em relação à
     # voz na música original (menos `pratos_db`), onde a bateria nova toca.
@@ -724,6 +943,12 @@ def produzir(partes, ajustes=None, semente=0, pasta_loops="dados/loops", variar=
     rel = rms_db(topo_cru) - rms_db(desacelerar(estereo["vocals"], a.velocidade, a.manter_tom))
     pratos = nivel(camada_pratos(bat_cru, a.pratos_hz), a.volume_voz + rel + a.pratos_db) * g_bat
     mix = nivel(voz, a.volume_voz) + nivel(base, vol_base) + nv_bat + pratos
+    if camadas is not None:
+        camadas.update(voz=voz, bateria=nv_bat, pratos=pratos, bateria_original=bat_cru, grade=batidas,
+                       bumbos=np.asarray(bumbos), teclado=teclas_l,
+                       baixo_novo=None if baixo_novo_l is None else baixo_novo_l[0] * uso,
+                       # ganho (dB) que a base e a voz levam na mixagem
+                       ganho_base_db=vol_base - rms_db(base), ganho_voz_db=a.volume_voz - rms_db(voz))
     # A oscilação de fita vai na mixagem inteira de uma vez: voz e base
     # oscilam juntas (separadas, elas desafinavam uma contra a outra).
     mix = wow_flutter(mix, a.wow, rng)
@@ -737,8 +962,8 @@ def produzir(partes, ajustes=None, semente=0, pasta_loops="dados/loops", variar=
                 loop=os.path.basename(enc["loop"]) if usar_loop else "bateria original",
                 loop2=os.path.basename(enc["loop2"]), bateria=modo_bateria, swing=swing_m if usar_loop else None, bateria_original_por_baixo=misturar_original and usar_loop, trechos_sem_bateria=trechos_mudos,
                 alinhamento_ms=round(float(desvio_orig), 1) if usar_loop else None,
-                teclado=round(toca_teclado, 2), tom_da_musica=tom_usado, acordes=acordes_usados,
-                baixo_novo=baixo_novo_l is not None, bateria_db=round(vol_bat - a.volume_voz, 1), base_db=round(vol_base - a.volume_voz, 1), secoes=[(round(s["ini"]), s["papel"]) for s in secoes])
+                teclado=round(toca_teclado, 2), riff=round(riff_toca, 2), gancho=info_gancho, timbre=timbre_usado, tom_da_musica=tom_usado, acordes=acordes_usados,
+                baixo_novo=baixo_novo_l is not None, assobio_na_base=tem_assobio, bateria_db=round(vol_bat - a.volume_voz, 1), base_db=round(vol_base - a.volume_voz, 1), secoes=[(round(s["ini"]), s["papel"]) for s in secoes])
     # Saída (n, 2), pronta para soundfile.write.
     return (0.9 * mix / (np.abs(mix).max() + 1e-9)).T.astype(np.float32), info
 
@@ -758,6 +983,65 @@ def defasagem_ms(bateria_nova, ritmo_original, janela=0.1):
     d = (novos - perto)
     d = d[np.abs(d) < janela] * 1000
     return float(np.median(d)), float(np.median(np.abs(d))), float(np.mean(np.abs(d) > 30))
+
+
+def ataques_finos(y, fracao=0.5):
+    """Instantes (s) dos `fracao` ataques mais fortes, no começo da subida
+    de cada um (passo de 64 amostras, 1,5 ms)."""
+    hop = 64
+    env = librosa.onset.onset_strength(y=mono(y).astype(np.float32), sr=SR, hop_length=hop)
+    q = librosa.onset.onset_detect(onset_envelope=env, sr=SR, hop_length=hop, backtrack=True)
+    if len(q) == 0:
+        return np.zeros(0)
+    forca = env[np.minimum(q + 3, len(env) - 1)]
+    q = q[forca >= np.quantile(forca, 1 - fracao)]
+    return librosa.frames_to_time(q, sr=SR, hop_length=hop)
+
+
+def defasagem_fina(nova, original, maximo=0.04):
+    """Atraso mediano (s) dos ataques fortes de `nova` em relação aos de
+    `original` (só os que têm um par a menos de `maximo` s)."""
+    a, r = ataques_finos(nova), ataques_finos(original)
+    if len(a) < 8 or len(r) < 8:
+        return 0.0
+    _, d = _atrasos(a, np.sort(r), janela=maximo)
+    return float(np.median(d)) if len(d) >= 8 else 0.0
+
+
+def atraso_na_grade(bateria, batidas, maximo=0.04):
+    """Onde os golpes fortes da bateria caem em relação às batidas da grade
+    (mediana, s), contando só os que estão a menos de `maximo` s de uma."""
+    a = ataques_finos(bateria)
+    if len(a) < 8 or len(batidas) < 2:
+        return 0.0
+    _, d = _atrasos(a, np.asarray(batidas), janela=maximo)
+    return float(np.median(d)) if len(d) >= 8 else 0.0
+
+
+def posicoes_do_groove(bateria, batidas, fracao=0.7, minimo=0.15):
+    """Onde a bateria bate (s): os golpes de fato e, em cada batida da grade,
+    as posições em que o loop costuma bater (as que aparecem em >= `minimo`
+    das batidas). Em 4r Da Squaw o loop tem swing (o contratempo cai a 58%
+    da batida) e as notas do piano copiadas do teclado original caíam ora no
+    contratempo reto, ora no com swing; levadas a essas posições, seguem o
+    balanço da bateria."""
+    golpes = ataques_finos(bateria, fracao)
+    b = np.asarray(batidas)
+    if len(golpes) < 8 or len(b) < 4:
+        return golpes
+    j = np.searchsorted(b, golpes) - 1
+    ok = (j >= 0) & (j < len(b) - 1)
+    fase = (golpes[ok] - b[j[ok]]) / (b[j[ok] + 1] - b[j[ok]])
+    caixas = np.histogram(fase, bins=48, range=(0, 1))[0]
+    fases = []
+    for k in np.flatnonzero(caixas >= minimo * len(b)):
+        if fases and k - fases[-1][1] <= 1:
+            fases[-1][1] = k
+        else:
+            fases.append([k, k])
+    tipicas = [float(np.median(fase[(fase >= k0 / 48) & (fase < (k1 + 1) / 48)])) for k0, k1 in fases]
+    virtuais = [b[i] + f * (b[i + 1] - b[i]) for i in range(len(b) - 1) for f in tipicas]
+    return np.sort(np.concatenate([golpes, virtuais]))
 
 
 def golpes_fortes(y, fracao=0.4):

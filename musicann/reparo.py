@@ -69,3 +69,53 @@ def tapar_buracos(y, golpes, sr, max_db=12.0):
              for c in canais]
     saida = np.stack(saida).astype(y.dtype)
     return saida if y.ndim == 2 else saida[0]
+
+
+def separar_assobio(voz, sr, fmin=1000.0, fmax=3000.0, concentracao=0.6, minimo_s=0.15):
+    """Tira da voz separada um assobio (ou flauta, apito): o instrumento que o
+    Demucs pôs na voz.
+
+    Em Chill Bill o assobio do gancho saiu inteiro na faixa da voz (a
+    introdução e o final são só ele, a ~1,6 kHz). Como voz, ele passava
+    limpo, no volume da voz e sem nada de lo-fi, e a música soava como a
+    original com outra base. Aqui: onde a voz é um tom quase puro e agudo
+    (pitch entre `fmin` e `fmax`, com >= `concentracao` da energia de 800 Hz
+    a 8 kHz nos 3 primeiros harmônicos), por pelo menos `minimo_s`
+    segundos, as faixas de frequência desses harmônicos saem da voz. Voz
+    cantada ou falada tem a energia espalhada em muitos harmônicos (0,06-0,08
+    nas músicas de rap; o assobio, 0,85).
+    voz: (2, n). Devolve (voz sem o assobio, assobio), os dois (2, n)."""
+    sr2, hop2, n_fft = 22050, 256, 4096
+    y = librosa.resample(voz.mean(0), orig_sr=sr, target_sr=sr2)
+    f0, vz, _ = librosa.pyin(y, fmin=fmin, fmax=fmax, sr=sr2, frame_length=2048, hop_length=hop2)
+    P = np.abs(librosa.stft(y, n_fft=2048, hop_length=hop2)) ** 2
+    f2 = librosa.fft_frequencies(sr=sr2, n_fft=2048)
+    banda = (f2 > 800) & (f2 < 8000)
+    m = min(P.shape[1], len(f0))
+    e = np.sqrt(P[:, :m].mean(0))
+    assobio = np.zeros(m, bool)
+    for t in np.flatnonzero(vz[:m] & np.isfinite(f0[:m]) & (e > 0.1 * np.percentile(e, 90))):
+        perto = np.zeros(len(f2), bool)
+        for h in (1, 2, 3):
+            perto |= np.abs(1200 * np.log2((f2 + 1e-9) / (h * f0[t]))) < 70
+        assobio[t] = P[perto & banda, t].sum() > concentracao * P[banda, t].sum()
+    # Só trechos que duram (tira detecções soltas de uma vogal aguda).
+    rot, k = ndimage.label(assobio)
+    for i in range(1, k + 1):
+        if (rot == i).sum() * hop2 / sr2 < minimo_s:
+            assobio[rot == i] = False
+    if not assobio.any():
+        return voz, np.zeros_like(voz)
+    # Máscara nos harmônicos, na resolução do áudio original (mesmo passo no tempo).
+    hop = int(round(hop2 * sr / sr2))
+    X = librosa.stft(voz, n_fft=n_fft, hop_length=hop)
+    f = librosa.fft_frequencies(sr=sr, n_fft=n_fft)
+    M = np.zeros(X.shape[1:])
+    for t in np.flatnonzero(assobio):
+        if t >= M.shape[1]:
+            break
+        for h in (1, 2, 3, 4):
+            M[np.abs(1200 * np.log2((f + 1e-9) / (h * f0[t]))) < 70, t] = 1
+    M = ndimage.uniform_filter(M, size=(3, 5))
+    so_assobio = librosa.istft(X * M, hop_length=hop, length=voz.shape[1])
+    return voz - so_assobio, so_assobio

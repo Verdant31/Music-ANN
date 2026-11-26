@@ -21,6 +21,21 @@ O que `musicann/producao.py` faz:
 
 Os ajustes ficam em `producao.Ajustes`.
 
+### Opções
+
+```powershell
+.venv\Scripts\python produzir_lofi.py minha_musica.mp3 --riff --teclado progressao --timbre gravado
+```
+
+- `--perfil`: `rap` (base refeita, o padrão), `brasileira` (base original filtrada) ou `pesada` (rap com 808 na frente: a gravação original mais lenta e escura, como a lo-fi mais ouvida de *Chill Bill*).
+- `--riff`: troca o teclado/sample original por um piano elétrico novo. Com `--teclado`:
+  - `gancho`: quando o sample se repete (*4r Da Squaw*: uma frase de 2 compassos, 33 vezes), transcreve a frase pela média de todas as repetições e a toca limpa, com variações por seção e a cada 8 compassos;
+  - `progressao`: toca os acordes da própria música, tempo a tempo, trocando de acorde junto com o baixo. Um acorde por compasso errava músicas como *No Role Modelz*, que trocam num ritmo de 5 + 3 tempos.
+- `--timbre gravado`: o piano é um Rhodes Mark I de 1977 gravado nota a nota (veja Instalar); sem as amostras, usa o sintetizado.
+- `--bateria`: `loop`, `substituicao` ou `original`; por padrão, o do perfil.
+
+O estudo que levou ao teclado em progressão está em `musicann/harmonia.py`: nas lo-fis de J. Cole do canal Ivy Station, o produtor não copia o sample. Ele toca acordes simples de 3 notas, segurados, com a frase se repetindo a cada 4 ou 8 compassos.
+
 ## O que foi testado e o que se aprendeu
 
 **Dados.** `pares.csv` tem a gravação original e uma lo-fi popular do YouTube de 46 músicas de rap americano e música brasileira; `pares_bollywood.csv`, 33 lo-fi flips oficiais de Bollywood. Os áudios não vão para o repositório.
@@ -43,7 +58,7 @@ py -3.14 -m venv .venv
 .venv\Scripts\python -m pip install librosa soundfile scipy matplotlib demucs transformers accelerate
 ```
 
-Os loops de bateria vão em `dados/loops/` (os 800 primeiros do Lo-Fi Drums Dataset já bastam). Para refazer os experimentos, baixe os pares para `Musics/Normal/<nome>.mp3` e `Musics/Lofi/<nome>.mp3` e rode `separar.py`, `preparar_voz.py` e depois `treinar.py` ou `medir_ajustes.py` + `treinar_ajustes.py`. Outros scripts: `preparar_sintetico.py` (pares de controle), `conferir_alinhamento.py` (mede o alinhamento e grava um .wav estéreo para ouvir), `exemplos_producao.py` (página de comparação de ouvido).
+Os loops de bateria vão em `dados/loops/` (os 800 primeiros do Lo-Fi Drums Dataset já bastam). Para `--timbre gravado`, baixe o ZIP do [jRhodes3d](https://github.com/sfzinstruments/jlearman.jRhodes3d) (Jeff Learman, amostras CC BY 4.0, ~95 MB) e descompacte em `dados/instrumentos/`, ficando `dados/instrumentos/jlearman.jRhodes3d-master/`. Para refazer os experimentos, baixe os pares para `Musics/Normal/<nome>.mp3` e `Musics/Lofi/<nome>.mp3` e rode `separar.py`, `preparar_voz.py` e depois `treinar.py` ou `medir_ajustes.py` + `treinar_ajustes.py`. Outros scripts: `preparar_sintetico.py` (pares de controle), `conferir_alinhamento.py` (mede o alinhamento e grava um .wav estéreo para ouvir), `exemplos_producao.py` (página de comparação de ouvido).
 
 Os notebooks `fillDataset.ipynb` e `main.ipynb` são a versão de 2023, mantidos como registro.
 
