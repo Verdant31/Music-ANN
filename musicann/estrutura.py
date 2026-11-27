@@ -6,8 +6,8 @@ rótulo. Nos testes do artigo acerta ~80% das fronteiras na base Harmonix
 (o agrupamento por repetição que eu usava antes errava bastante em músicas
 em que verso e refrão têm a mesma energia, como Blinding Lights).
 
-O modelo roda local (o código vem do repositório do Hugging Face, que foi
-lido antes: só monta a rede e lê os arquivos de configuração).
+O modelo roda local. O código dele vem do repositório no Hugging Face
+(trust_remote_code) e só monta a rede e lê os arquivos de configuração.
 """
 import os
 import sys

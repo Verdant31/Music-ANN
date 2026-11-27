@@ -568,8 +568,7 @@ def riff(outro, sr, lista_acordes, escala, afinacao=0.0, rng=None, densidade_min
 
     Quando o resto original é um gancho rítmico (5-6 ataques por segundo),
     trocá-lo por acordes de dois toques por compasso apaga a cara da música.
-    Aqui cada
-    ataque forte do resto original vira uma nota do piano no mesmo instante:
+    Aqui cada ataque forte do resto original vira uma nota do piano no mesmo instante:
     a nota mais forte do chroma ali, na escala da música, na oitava mais perto
     da anterior. Onde o resto soa como acorde (várias notas com a mesma
     força), toca as notas de cima do acorde da música. Só onde o resto tem
@@ -812,24 +811,21 @@ def _arranjar(notas, fatias, min_forca=0.3):
 
 
 def _variacao(frase, fatias, papel, pos, sob_voz, virada):
-    """A frase de um ciclo com as variações de arranjo de um produtor. A mesma
-    frase, igual nos 33 ciclos de 4r Da Squaw, soou "um pouquinho
-    repetitiva". O sample continua (é a cara da música), mas:
-      introdução   sem variação nenhuma. Ali não há bateria, e o piano fica
-                   em primeiro plano: o primeiro ciclo só com a melodia e a
-                   virada antes do verso "não ficaram muito bons" (o resto
-                   das variações, sim)
+    """A frase de um ciclo com as variações de arranjo de um produtor, para
+    a mesma frase não se repetir igual a música inteira. O sample continua
+    (é a cara da música), mas:
+      introdução   sem variação. Ali não há bateria e o piano fica exposto,
+                   então a frase toca como foi transcrita
       refrão       a frase cheia mesmo com voz, e a nota de cima dobrada uma
-                   oitava acima, mais leve (o refrão "abre")
+                   oitava acima, mais leve
       verso        a versão esparsa; a cada 8 compassos alterna entre os
                    acordes com a nota de cima e sem ela (mais grave). Sem
                    acorde rolado: 30 ms entre as notas punham 11% dos
-                   ataques a mais de 25 ms da grade, e um dedilhado de 15 ms
-                   já soava "fora do tempo"
+                   ataques a mais de 25 ms da grade
       virada       no último ciclo de cada 8 compassos e antes de mudar de
                    seção, o último quarto do ciclo sai: sob a voz fica o
-                   acorde anterior soando (respiro); sem voz, as notas de
-                   cima uma oitava acima, soltas
+                   acorde anterior soando; sem voz, as notas de cima uma
+                   oitava acima, soltas
     `pos`: o ciclo dentro da seção (0, 1, ...). Devolve os eventos."""
     if papel == "intro":
         return list(frase["esparso" if sob_voz else "cheio"])
@@ -860,11 +856,10 @@ def gancho(outro, sr, tempos, afinacao=0.0, rng=None, alvos=None, canta=None, mi
     """O sample/teclado que se repete na música, transcrito pela média das
     repetições e tocado no piano elétrico como uma frase (ver acima).
 
-    Em 4r Da Squaw o sample é um só na música toda (semelhança 0,61 a 2
-    compassos na música inteira): uma frase para todos os ciclos. Nas
-    outras, cada parte tem o seu: em Blinding Lights o verso repete 1 compasso (0,85) e o
-    refrão 4 (0,63-0,89); em Neighbors e Count Me Out só algumas partes têm
-    ciclo claro. Então, por seção (`secoes`, {ini, fim, papel} no tempo
+    Quando um sample só domina a música inteira, uma frase serve para todos
+    os ciclos. Em muitas músicas cada parte tem o seu (o verso repete 1
+    compasso e o refrão 4, por exemplo), ou só algumas partes têm ciclo
+    claro. Então, por seção (`secoes`, {ini, fim, papel} no tempo
     original): o ciclo é o de 1, 2 ou 4 compassos com o resto mais parecido
     consigo mesmo um ciclo depois (cosseno >= `minimo`), e as seções com o
     mesmo ciclo e médias parecidas (correlação >= `junta`) formam uma frase
@@ -1106,12 +1101,9 @@ def progressao(lista_acordes, tempos, n, sr, escala, afinacao=0.0, rng=None, alv
     """Teclado novo em progressão (ver o estudo acima), no ritmo harmônico da
     própria música.
 
-    A primeira versão tocava um acorde por compasso e soou como "nota
-    errada", mesmo com o Rhodes gravado ("o problema são as notas mesmo").
-    Medido em No Role Modelz: o baixo troca de acorde num ritmo de 5 + 3
-    tempos (A#m 5, Fm 3, G# 5, C# 3), e um acorde por compasso sempre errava
-    uma das duas trocas por um tempo: o piano ficava no acorde velho em cima
-    do novo da música. Então, tempo a tempo: o acorde de cada tempo vem de
+    Um acorde por compasso não serve: em No Role Modelz o baixo troca de
+    acorde num ritmo de 5 + 3 tempos (A#m 5, Fm 3, G# 5, C# 3), e o piano
+    ficaria um tempo no acorde velho em cima do novo. Então, tempo a tempo: o acorde de cada tempo vem de
     `lista_acordes`; o ciclo é o de 4, 8, 16 ou 32 tempos que mais se repete,
     e cada posição dele toca o acorde mais comum ali (os erros de detecção
     somem); um acorde de um tempo só vira o vizinho. O piano troca de acorde

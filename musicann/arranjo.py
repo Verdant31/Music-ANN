@@ -72,9 +72,9 @@ def detectar_secoes(mix, voz, sr):
 def alinhar_aos_compassos(secoes, compassos, duracao):
     """Leva cada fronteira de seção para o início de compasso mais próximo,
     se houver um a menos de meio compasso. Em trechos sem batida (voz
-    sozinha, teclado sem bateria) a fronteira fica onde está: antes, todas
-    iam para o primeiro compasso da música, e em Peace (bateria só a partir
-    de 1:28) o primeiro 1:44 da lo-fi virou uma introdução só."""
+    sozinha, teclado sem bateria) a fronteira fica onde está; senão, numa
+    música em que a bateria só entra depois de um minuto, todas iriam para
+    o primeiro compasso e o começo viraria uma introdução só."""
     if len(compassos) == 0:
         return secoes
     meio = 0.5 * float(np.median(np.diff(compassos))) if len(compassos) > 1 else 1.0
@@ -132,9 +132,8 @@ def curva_por_papel(n, sr, secoes, valores):
     return c
 
 
-# Tratamento de cada papel, com contrastes que se ouvem (a pesquisa sobre
-# produção lo-fi aponta: refrão mais "cheio" que o verso, bateria e filtro
-# marcando as mudanças, ponte e introdução mais vazias e "sonhadoras").
+# Tratamento de cada papel: refrão mais cheio que o verso, bateria e filtro
+# marcando as mudanças, ponte e introdução mais vazias.
 PERFIL = {
     #               bateria  corte bateria  base (x corte)  reverb voz
     "intro":        (0.0,    3000,          0.6,            0.25),

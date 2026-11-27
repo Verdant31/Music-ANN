@@ -25,7 +25,7 @@ SR = 44100
 @dataclass
 class Ajustes:
     # 1 = sem desacelerar; 0.95 = 5% mais lento (~0,9 semitom abaixo). As lo-fi
-    # do YouTube ficam em 0,92 (mediana, dados/estudo/); 0,88 já soou "grossa".
+    # do YouTube ficam em 0,92 (mediana, dados/estudo/); 0,88 já engrossa demais a voz.
     velocidade: float = 0.95
     # False: como disco tocado mais devagar (mais grave junto), sem nenhum
     # artefato. True: mantém o tom, mas o esticamento (phase vocoder) borra os
@@ -46,7 +46,7 @@ class Ajustes:
     voz_saturacao: float = 1.3     # saturação de fita leve na voz
     sidechain: float = 0.35        # quanto a base abaixa a cada bumbo
     # Volumes (dB RMS). Nas lo-fi do YouTube a base fica ~5 dB mais forte em
-    # relação à voz do que na original; aqui ela ficava ~7 dB mais fraca.
+    # relação à voz do que na original.
     volume_bateria: float = -22.0
     bateria_original_db: float = -13.0  # bateria original tratada por baixo do loop (cola o groove)
     volume_base: float = -18.0
@@ -807,9 +807,8 @@ def produzir(partes, ajustes=None, semente=0, pasta_loops="dados/loops", variar=
             acordes_usados = " ".join(hm.nome(r, t) for i0, i1, r, t, c in lista if i1 - i0 > 0.4 and t is not None and c >= 0.6)[:200]
 
     # Baixo novo colado nos bumbos que o loop toca de fato (no refrão, os do
-    # segundo loop). Antes ia nos tempos 1 e 3 da grade, do primeiro loop
-    # na música toda: chegava ~15 ms depois do bumbo e, onde o loop tem
-    # outro desenho de bumbo, fora dele.
+    # segundo loop). Nos tempos 1 e 3 da grade ele chegaria ~15 ms depois do
+    # bumbo e, onde o loop tem outro desenho de bumbo, fora dele.
     if usar_loop and a.teclado and a.baixo_novo and acordes_usados:
         bumbos = list(ataques_finos(passa_baixa(mono(bateria), 150), 0.5))
         if bumbos:
