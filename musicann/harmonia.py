@@ -9,7 +9,8 @@ original, só filtrado, deixa a lo-fi parecida demais com a música.
               moldes de acordes, suavizado com Viterbi), com uma confiança
   vozes()     escolhe as notas de cada acorde (com sétima e nona, perto
               das notas do acorde anterior, como um tecladista tocaria)
-  rhodes()    sintetiza uma nota de piano elétrico (FM, como o DX7)
+  rhodes()    sintetiza uma nota de piano elétrico (modelo físico simples;
+              com as amostras do jRhodes3d, toca o Rhodes gravado)
   teclado()   toca os acordes na grade de compassos, com o ritmo e as
               pequenas imperfeições de um tecladista
 """
@@ -95,8 +96,8 @@ def acordes(harmonia, baixo, sr, hop=4096, troca=0.995, escala=None, sensivel=No
     cn = c / (np.linalg.norm(c, axis=0, keepdims=True) + 1e-9)
     sim = M @ cn  # (moldes, quadros)
     # Só o resto, sem o baixo: para desempatar a terça. Um 808 forte domina
-    # o chroma da soma (e o 5º harmônico dele cai na terça maior); em Chill
-    # Bill o Ré# menor da melodia saía como acorde sem terça a música toda.
+    # o chroma da soma (e o 5º harmônico dele cai na terça maior), e o acorde
+    # menor da melodia sairia sem terça.
     ch = librosa.feature.chroma_cqt(y=harmonia, sr=sr, hop_length=hop)[:, :n]
     sim_h = M @ (ch / (np.linalg.norm(ch, axis=0, keepdims=True) + 1e-9))
     raiz_baixo = cb / (cb.max(0, keepdims=True) + 1e-9)
@@ -178,7 +179,7 @@ def notas_lofi(raiz, tipo, escala=None):
     else:
         # "6" (acorde maior com sétima menor soando) ou sétima maior fora do
         # tom: sexta no lugar da sétima (6/9), que não briga com a sétima
-        # menor dos acordes de rock e blues (O Calhambeque).
+        # menor dos acordes de rock e blues.
         setima = 9 if no_tom(9) else None
     if setima is not None:
         iv.append(setima)
@@ -213,11 +214,9 @@ def rhodes(f, dur, sr, vel=0.8, rng=None):
     Decai em dois estágios (rápido, depois longo; as graves soam mais) e,
     ao soltar, o abafador corta em ~70 ms.
 
-    O modelo anterior (FM, ver rhodes_fm) foi o que o usuário apontou como o
-    problema: "o próprio som do piano, o som dele está ruim" (2026-11-25).
-    Medido: no ataque o 2º e o 3º harmônicos iam tão fortes quanto a
-    fundamental e havia um chiado em torno do 14º, igual em toda altura; em
-    meio segundo virava quase seno puro (o timbre fino de sintetizador)."""
+    Substitui o modelo FM (rhodes_fm), em que no ataque o 2º e o 3º
+    harmônicos iam tão fortes quanto a fundamental e, em meio segundo, a
+    nota virava quase seno puro (o timbre fino de sintetizador)."""
     rng = rng or np.random.default_rng(0)
     k = (261.6 / f) ** 0.5  # graves soam mais e mais escuras
     n = int((dur + 0.4) * sr)
@@ -246,8 +245,7 @@ def rhodes(f, dur, sr, vel=0.8, rng=None):
 
 
 # --- Rhodes gravado (amostras) ---------------------------------------------
-# O modelo sintetizado acima, mesmo refeito, continuou "ruim" (2026-11-25).
-# Aqui cada nota é uma amostra gravada de um Rhodes Mark I Stage 73 de 1977
+# Cada nota é uma amostra gravada de um Rhodes Mark I Stage 73 de 1977
 # (jRhodes3d, de Jeff Learman: https://github.com/sfzinstruments/jlearman.jRhodes3d,
 # amostras CC BY 4.0, livres para fazer música). As amostras ficam em
 # dados/instrumentos (fora do git); sem elas, toca o sintetizado.
@@ -508,8 +506,8 @@ def tom_pelos_acordes(lista_acordes, perfil=None, empate=0.95):
 def fora_do_tom(raiz, tipo, escala, sensivel=None):
     """Quantas notas do acorde estão fora da escala. A sensível da escala
     menor (sol# em lá menor) só vale como terça do acorde de dominante (Mi
-    maior em lá menor): antes ela valia para qualquer acorde e deixava passar,
-    em O Calhambeque, um Mi menor no lugar do Mi maior da banda."""
+    maior em lá menor); valendo para qualquer acorde, um Mi menor passaria
+    no lugar do Mi maior."""
     n = 0
     for i in INTERVALOS[tipo]:
         t = (raiz + i) % 12
@@ -568,16 +566,15 @@ def riff(outro, sr, lista_acordes, escala, afinacao=0.0, rng=None, densidade_min
          canta=None, fracao=0.35, fracao_sob_voz=0.15):
     """O gancho do teclado/sample original tocado no piano elétrico.
 
-    Em Neighbors e Blinding Lights o resto original é um gancho rítmico (5-6
-    ataques por segundo, e toca sozinho em ~30% da música); trocá-lo por
-    acordes de dois toques por compasso apagava a cara da música. Aqui cada
+    Quando o resto original é um gancho rítmico (5-6 ataques por segundo),
+    trocá-lo por acordes de dois toques por compasso apaga a cara da música.
+    Aqui cada
     ataque forte do resto original vira uma nota do piano no mesmo instante:
     a nota mais forte do chroma ali, na escala da música, na oitava mais perto
     da anterior. Onde o resto soa como acorde (várias notas com a mesma
     força), toca as notas de cima do acorde da música. Só onde o resto tem
-    ataques (>= `densidade_minima` por segundo, em janelas de 4 s): o
-    assobio de Chill Bill (~3 por segundo) entra; os acordes longos de Peace
-    (~1 por segundo) não.
+    ataques (>= `densidade_minima` por segundo, em janelas de 4 s): um
+    assobio (~3 por segundo) entra; acordes longos (~1 por segundo) não.
 
     O tempo de cada nota é o do ataque original, não uma grade: puxar as
     notas para a semicolcheia mais próxima as movia 23 ms em média (até
@@ -590,8 +587,8 @@ def riff(outro, sr, lista_acordes, escala, afinacao=0.0, rng=None, densidade_min
     Poucas notas: só a fração `fracao` mais forte dos ataques vira nota
     e, enquanto o rapper canta (`canta`, curva 0-1 no tempo da música), só
     a `fracao_sob_voz` mais forte; duas notas ficam a pelo menos `espaco` s
-    uma da outra. Com metade dos ataques, em 4r Da Squaw, o piano dava 2
-    toques por segundo e era "muito acorde de piano", mesmo mais baixo.
+    uma da outra (com metade dos ataques o piano já dá ~2 toques por
+    segundo, demais para um teclado de fundo).
     Devolve (áudio estéreo (2, n), curva 0/1 de onde o riff toca)."""
     rng = rng or np.random.default_rng(1)
     n = len(outro)
@@ -637,8 +634,8 @@ def riff(outro, sr, lista_acordes, escala, afinacao=0.0, rng=None, densidade_min
             continue
         ultimo = t0
         prox = t_on[k + 1] if k + 1 < len(t_on) else t0 + 0.5
-        # Notas curtas (até 0,4 s): segurando até 1 s, o piano soava em 87%
-        # do tempo em 4r Da Squaw ("o tempo todo piano").
+        # Notas curtas (até 0,4 s): segurando até 1 s, o piano soa quase o
+        # tempo todo.
         dur = float(np.clip(prox - t0, 0.08, 0.4))
         a0 = librosa.time_to_frames(t, sr=sr, hop_length=hop)
         v = c[:, a0 : a0 + 4].mean(1)
@@ -647,7 +644,7 @@ def riff(outro, sr, lista_acordes, escala, afinacao=0.0, rng=None, densidade_min
         ordem = np.argsort(v)[::-1]
         if v[ordem[1]] > 0.8 * v[ordem[0]]:
             # Soa como acorde: só a nota de cima do acorde da música ali (as
-            # três notas, várias vezes por segundo, eram "piano demais").
+            # três notas, várias vezes por segundo, enchem demais).
             ac = _acorde_na_batida(lista_acordes, t0, t0 + 0.2)
             if ac is None or ac[3] is None:
                 continue
@@ -676,10 +673,9 @@ def riff(outro, sr, lista_acordes, escala, afinacao=0.0, rng=None, densidade_min
 
 
 # --- O gancho como um pianista tocaria -------------------------------------
-# Em 4r Da Squaw o riff nota a nota (acima) soava "alguém que não toca piano":
-# notas secas que somem, sequências que não combinam, e sumia sob a voz. Mas o
-# resto original ali é um sample de 2 compassos repetido 28 vezes, quase igual
-# (correlação 0,7-0,9 com a média). Então: acha o ciclo, tira a média de todas
+# Copiado nota a nota (acima), o riff vira notas secas e soltas. Mas em muito
+# rap o resto original é um sample de 1-4 compassos repetido a música toda,
+# quase igual (correlação 0,7-0,9 com a média). Então: acha o ciclo, tira a média de todas
 # as repetições (a voz que vaza e as variações somem), transcreve essa frase
 # uma vez e a toca limpa em todo ciclo, com cada acorde soando até o próximo.
 
@@ -747,9 +743,8 @@ def _arranjar(notas, fatias, min_forca=0.3):
     for i, d, m, f in notas:
         if f < min_forca or (d == 1 and f < 0.5):
             continue
-        # Abaixo de C3 é o baixo (o baixo novo cuida dele): subido uma oitava,
-        # o baixo de sintetizador de Blinding Lights virava a "melodia" do
-        # refrão. Em 4r Da Squaw não há nota assim.
+        # Abaixo de C3 é o baixo (o baixo novo cuida dele); subido uma oitava,
+        # um baixo de sintetizador viraria a "melodia".
         if m < 48:
             continue
         while m > 88:
@@ -760,8 +755,8 @@ def _arranjar(notas, fatias, min_forca=0.3):
         g = grupos.setdefault(i, {})
         g[m] = max(f, g.get(m, 0))
     # A nota que ataca uma semicolcheia antes ou depois de um toque mais forte
-    # entra nele (em 4r Da Squaw o C#5 de cima chega 1/16 antes do acorde de
-    # F; separado, virava uma nota solta que a colcheia mínima derrubava).
+    # entra nele (uma nota de cima que chega 1/16 antes do acorde, separada,
+    # vira uma nota solta).
     forca = lambda g: sum(g.values())
     for i in sorted(grupos, key=lambda i: forca(grupos[i])):
         for j in ((i - 1) % fatias, (i + 1) % fatias):
@@ -932,8 +927,7 @@ def gancho(outro, sr, tempos, afinacao=0.0, rng=None, alvos=None, canta=None, mi
         melhor = max(sims.values())
         return min(c for c, v in sims.items() if v >= 0.9 * melhor), melhor
 
-    # 1) Um sample só na música toda (4r Da Squaw: 0,61 com 2 compassos):
-    # uma frase para todos os ciclos, o caminho da versão aprovada.
+    # 1) Um sample só na música toda: uma frase para todos os ciclos.
     tudo = np.ones(nf, bool)
     global_ = ciclo_de({c: semelhanca(tudo, c, 3) for c in (1, 2, 4)})
     por_secao = {}
@@ -941,8 +935,8 @@ def gancho(outro, sr, tempos, afinacao=0.0, rng=None, alvos=None, canta=None, mi
         grupos = [dict(c=global_[0], secs=list(range(len(secoes))))]
         por_secao = {-1: global_}
     else:
-        # Senão, o ciclo de cada seção (com pelo menos 2 repetições: em Count
-        # Me Out as partes com ciclo claro têm só 4 compassos).
+        # Senão, o ciclo de cada seção (com pelo menos 2 repetições: há
+        # partes com ciclo claro de só 4 compassos).
         for j, s in enumerate(secoes):
             sel = (g16[:-1] >= s["ini"]) & (g16[:-1] < s["fim"])
             r = ciclo_de({c: semelhanca(sel, c, 2) for c in (1, 2, 4)})
@@ -984,8 +978,8 @@ def gancho(outro, sr, tempos, afinacao=0.0, rng=None, alvos=None, canta=None, mi
         if not frase["cheio"]:
             continue
         # Com as notas de cima abaixo de C4, a "frase" é uma linha de baixo
-        # (no refrão de Blinding Lights, o baixo de sintetizador, que fica no
-        # resto): não é teclado, e no piano soava como baixo tocado no piano.
+        # (um baixo de sintetizador que a separação deixou no resto), não
+        # teclado.
         if np.median([ms[-1] for _, _, ms, _, _ in frase["cheio"]]) < 60:
             g["baixo"] = True
             continue
@@ -1067,13 +1061,10 @@ def gancho(outro, sr, tempos, afinacao=0.0, rng=None, alvos=None, canta=None, mi
 
 
 # --- Teclado em progressão, como nas lo-fis de rap do YouTube ---------------
-# Estudo de "If J. Cole made lofi hip hop radio" (Ivy Station Records, 2,85
-# mi de visualizações; dados/estudo_jcole/): o produtor não transcreve o
-# sample. Toca uma progressão simples, um acorde por compasso (No Role
-# Modelz: D#m A#m Fm A#m D#m Fm Fm A#; Lights Please: A#m e Fm alternando),
-# acordes de 3 notas no meio do teclado (os originais têm 5), cada um soando
-# 2-4 tempos, o teclado soando 75-100% do tempo, e a frase se repete a cada
-# 4-8 compassos (a 2 compassos, semelhança 0,02-0,74; na nossa 4r, 0,89).
+# Em remixes lo-fi de rap populares o produtor não transcreve o sample: toca
+# uma progressão simples nos acordes da música, acordes de 3 notas no meio do
+# teclado, cada um soando 2-4 tempos, o teclado soando 75-100% do tempo, e a
+# frase se repetindo a cada 4-8 compassos.
 
 
 def _tres_notas(raiz, tipo, escala, anterior=None, com_fundamental=False):
@@ -1176,10 +1167,9 @@ def progressao(lista_acordes, tempos, n, sr, escala, afinacao=0.0, rng=None, alv
     # Padrão: os acordes da própria música tempo a tempo, sem os de um tempo
     # só (viram o anterior) e com os buracos de um tempo tapados. Com
     # `usar_ciclo` (True, ou "auto" com acerto >= `ciclo_minimo`), a
-    # progressão do ciclo. Medido (nota mais forte do baixo da música dentro
-    # do acorde do piano): tempo a tempo 98/93/87/80/80% em No Role Modelz,
-    # United In Grief, Blinding Lights, Count Me Out e Neighbors; com o ciclo
-    # 78/41/77/65/84% (as partes têm progressões diferentes).
+    # progressão do ciclo. Tempo a tempo erra menos: a nota mais forte do
+    # baixo cai dentro do acorde do piano em 80-98% do tempo, contra 41-84%
+    # com o ciclo (as partes costumam ter progressões diferentes).
     modo = "ciclo" if (usar_ciclo is True or (usar_ciclo == "auto" and melhor >= ciclo_minimo)) else "tempo a tempo"
     if modo == "ciclo":
         tocar = [prog[k % ciclo] if tem[k] else None for k in range(nt)]

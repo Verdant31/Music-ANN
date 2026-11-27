@@ -64,4 +64,8 @@ Os notebooks `fillDataset.ipynb` e `main.ipynb` são a versão de 2023, mantidos
 
 ## Versões
 
-As versões que ficaram boas ganham uma tag no git e uma pasta em `versoes/`, com o passo a passo para recriar o resultado e o hash dos arquivos para conferir. A primeira é a [`v3-peace`](versoes/v3/README.md), com a base refeita e a lo-fi de *Peace* aprovada.
+As versões que ficaram boas ganham uma tag no git e uma pasta em `versoes/`, com o passo a passo para recriar o resultado e o hash dos arquivos para conferir. A primeira é a [`v3-peace`](versoes/v3/README.md), com a base refeita e a lo-fi de *Peace* como referência.
+
+## Licença
+
+O código está sob a [licença MIT](LICENSE). As músicas usadas nos testes, os loops de bateria e as amostras de Rhodes têm as próprias licenças e não fazem parte do repositório.

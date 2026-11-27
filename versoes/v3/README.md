@@ -1,6 +1,6 @@
 # Versão v3: base refeita
 
-A tag `v3-peace` guarda o código exato que gerou a lo-fi de *Peace* (Travis Thompson) aprovada em 24/11/2026. É o ponto seguro para voltar se uma mudança futura piorar o resultado.
+A tag `v3-peace` guarda o código exato que gerou a lo-fi de referência de *Peace* (Travis Thompson). É o ponto seguro para voltar se uma mudança futura piorar o resultado.
 
 ## O que esta versão faz
 
@@ -15,7 +15,7 @@ A tag `v3-peace` guarda o código exato que gerou a lo-fi de *Peace* (Travis Tho
 
 Essas escolhas saíram de `estudar_lofis.py`, que comparou 29 remixes lo-fi do YouTube com as músicas originais.
 
-## Como recriar a Peace aprovada
+## Como recriar a lo-fi de Peace
 
 ```powershell
 git checkout v3-peace
@@ -37,8 +37,8 @@ python produzir_lofi.py Musics/Normal/TravisThompson_Peace.mp3 --saida TravisTho
 |---|---|
 | Entrada (`TravisThompson_Peace.mp3`) | `9ad6ccbd01feee186582dea903979a43b06d9d14025dc4010a6f98da16a7e7e6` |
 | Partes separadas (`dados/stems/TravisThompson_Peace_htdemucs.npz`) | `170802fdd352774a42c5de8e4017ad1933072397606d213d203d286073dd2de4` |
-| Saída aprovada (`TravisThompson_Peace.wav`) | `96f5695f711235d29e050718094b5156477fff6a21e30d5b127d9a12a313bc06` |
+| Saída (`TravisThompson_Peace.wav`) | `96f5695f711235d29e050718094b5156477fff6a21e30d5b127d9a12a313bc06` |
 
 Com as mesmas partes separadas, a saída sai idêntica, bit a bit: o código desta tag foi conferido assim. Uma separação nova pelo Demucs, na GPU, pode variar em casas decimais muito pequenas. Nesse caso a saída não sai idêntica, mas soa igual.
 
-O áudio não fica no repositório. Na máquina onde a versão foi aprovada, a entrada, as partes separadas e a saída estão em `exemplos/aprovadas/v3-peace/`, uma pasta fora do git.
+O áudio não fica no repositório.

@@ -76,47 +76,30 @@ class Ajustes:
     baixo_novo: bool = True        # baixo novo colado no bumbo do loop
     baixo_novo_db: float = 0.0     # volume do baixo novo em relação ao baixo original
     baixo_original_db: float = -15.0  # quanto o baixo original abaixa onde o baixo novo toca
-    # O gancho do teclado/sample original (quando ele é rítmico) tocado no
-    # piano elétrico, nota a nota (harmonia.riff). Em teste: Neighbors e
-    # Blinding Lights.
+    # O gancho do teclado/sample original tocado no piano elétrico (--riff).
     riff: bool = False
-    # O piano inteiro quando o riff toca. Ouvindo a B: "um pouquinho alto",
-    # depois "muito piano": o maior problema era a quantidade de notas, não o
-    # volume ("se abaixar demais, não dá para ouvir"); ver harmonia.riff.
     riff_db: float = -4.0
     piano_sob_voz_db: float = -5.0 # com o riff: o piano abaixa isso enquanto o rapper canta
-    # Quando o resto original é um ciclo que se repete (o sample de 4r Da
-    # Squaw), o --riff toca esse ciclo como uma frase (harmonia.gancho): ela
-    # substitui o sample, então fica no volume dele e quase não recua sob a
-    # voz (com o riff a -9 dB sob a voz, "não dá para ouvir o piano" e a
-    # música "fica parecendo a original"). Em 4r Da Squaw o sample fica
-    # 3,8 dB abaixo da voz onde o rapper canta; com -1,5/-1,5 o piano ficava
-    # 11,7 dB abaixo (o teto da base tira mais 2,6 dB); com +2/-0,5, 8,5.
-    # Com +3 (7,9 abaixo) a melodia ficou "muito boa", mas "dá pra baixar
-    # um pouquinho mais": +0,5 (o piano 1,5 dB mais baixo; a base se
-    # reequilibra e come parte da mudança). Ouvindo: "ainda dá para baixar
-    # um pouquinho mais": -1,5.
+    # Quando o resto original é um ciclo que se repete, o --riff toca esse
+    # ciclo como uma frase (harmonia.gancho). A frase substitui o sample, então
+    # fica perto do volume dele e quase não recua sob a voz; mais baixa que
+    # isso, some na mixagem e a música volta a soar como a original.
     gancho_db: float = -1.5
     gancho_sob_voz_db: float = -0.5
-    # A frase igual nos 33 ciclos soou "um pouquinho repetitiva": com
-    # variar, o arranjo muda por seção e a cada 8 compassos (harmonia.gancho).
+    # Varia o arranjo da frase por seção e a cada 8 compassos (harmonia.gancho).
     gancho_variar: bool = True
     # Volume mínimo da frase contra a voz onde o rapper canta (antes da
     # mixagem; ver o piso em produzir). None desliga.
-    gancho_piso_voz_db: float = -5.0  # na 4r aprovada: -4,6
-    # Com o riff: "gancho" transcreve o sample que se repete (4r Da Squaw,
-    # aprovada); "progressao" toca uma progressão simples nos acordes da
-    # música, como as lo-fis de rap do YouTube (harmonia.progressao). Os dois
-    # usam o mesmo volume (gancho_db, gancho_sob_voz_db e o piso).
+    gancho_piso_voz_db: float = -5.0
+    # Com o riff: "gancho" transcreve o sample que se repete; "progressao"
+    # toca uma progressão simples nos acordes da música (harmonia.progressao).
+    # Os dois usam o mesmo volume (gancho_db, gancho_sob_voz_db e o piso).
     teclado_estilo: str = "gancho"
-    # Chorus, sala e agudos amaciados no piano elétrico (cor_do_teclado),
-    # junto com o timbre novo (harmonia.rhodes): o som do piano era "o que
-    # está ruim" (2026-11-25).
+    # Chorus, sala e agudos amaciados no piano elétrico (cor_do_teclado).
     cor_teclado: bool = True
     # Som do piano elétrico: "sintetizado" (harmonia.rhodes) ou "gravado"
     # (amostras de um Rhodes de verdade, harmonia.rhodes_gravado; precisa de
-    # dados/instrumentos, fora do git). O sintetizado, mesmo refeito, ainda
-    # soou "ruim"; o gravado separa o timbre das notas (2026-11-25).
+    # dados/instrumentos, fora do git).
     timbre: str = "sintetizado"
     perda_maxima_db: float = 3.0   # a base nunca fica mais que isso abaixo do equilíbrio original
 
@@ -124,10 +107,10 @@ class Ajustes:
 # Perfis por estilo. "rap" é a base refeita (a lo-fi de Peace, tag
 # v3-peace). "brasileira" volta ao jeito anterior, com a base original
 # filtrada: nas brasileiras (samba, MPB, soul tocado por banda) a graça está
-# no violão, no suingue e na banda, e o piano elétrico com batida de hip-hop
-# no lugar deixou as músicas "esquisitas" (Oceano, Ela Partiu, O
-# Calhambeque). Ficam as correções que valem para todas (buracos da voz,
-# pratos, bateria original abafada onde o loop não toca).
+# no violão, no suingue e na banda, e trocar isso por piano elétrico e
+# batida de hip-hop descaracteriza a música. Ficam as correções que valem
+# para todas (buracos da voz, pratos, bateria original abafada onde o loop
+# não toca).
 PERFIS = {
     "rap": {},
     "brasileira": dict(teclado=False, baixo_novo=False, velocidade=0.97, chiado=0.006, voz_sala=0.10,
@@ -143,7 +126,7 @@ PERFIS = {
                    corte_base=2500.0, voz_agudos_hz=4500.0, voz_agudos_db=-6.0,
                    voz_sala=0.22, chiado=0.016, mais_que_original=3.0, teto_base=20.0, teto_bateria=20.0,
                    corte_final=8000.0, pratos_db=2.0,  # o chimbal acompanha a bateria, que fica 5 dB mais forte
-                   graves_db=-4.5),  # 808 um pouco menos marcante (ouvindo: "diminuiria UM POUQUINHO o grave")
+                   graves_db=-4.5),  # 808 um pouco menos marcante
 }
 
 
@@ -465,14 +448,11 @@ def grade_regular(batidas, tolerancia=0.025, minimo=0.85):
     regular = np.polyval(p, i)
     if np.std(batidas - regular) < tolerancia:
         return regular
-    # Um tropeço do detector (um trecho em que ele perde a batida) bastava
-    # para a música toda ir para a substituição: em 4r Da Squaw, 89% das
-    # batidas caem a menos de 25 ms de uma grade fixa de 144 bpm (o resto é
-    # um tropeço de 20 s), contra 10-15% nas gravações ao vivo (O
-    # Calhambeque, Ela Partiu, United In Grief). Count Me Out (81%, com a
-    # batida derivando ±30 ms) fica com a grade detectada. A reta é refeita
-    # sem os tropeços; onde o loop ainda não bater, a rede de segurança tira
-    # o loop do trecho.
+    # Um tropeço do detector (um trecho em que ele perde a batida) não deve
+    # mandar a música toda para a substituição: em produções de estúdio ~90%
+    # das batidas caem a menos de 25 ms de uma grade fixa, contra 10-15% nas
+    # gravações ao vivo. A reta é refeita sem os tropeços; onde o loop ainda
+    # não bater, a rede de segurança tira o loop do trecho.
     reta = _reta_sem_tropecos(batidas, tolerancia)
     if reta is None:
         return batidas
@@ -637,8 +617,8 @@ def produzir(partes, ajustes=None, semente=0, pasta_loops="dados/loops", variar=
     golpes_orig = golpes_fortes(pm["drums"], 0.5)
     for k in ("vocals", "other"):
         estereo[k] = reparo.tapar_buracos(estereo[k], golpes_orig, SR)
-    # Assobio (ou flauta) que a separação pôs na voz: vai para a base, que é
-    # onde ele recebe o tratamento lo-fi (em Chill Bill ele passava limpo).
+    # Assobio (ou flauta) que a separação pôs na voz: vai para a base, onde
+    # recebe o tratamento lo-fi em vez de passar limpo.
     estereo["vocals"], assobio = reparo.separar_assobio(estereo["vocals"], SR)
     tem_assobio = bool(np.any(assobio))
     voz, baixo, resto, assobio = (desacelerar(x, a.velocidade, a.manter_tom)
@@ -694,15 +674,14 @@ def produzir(partes, ajustes=None, semente=0, pasta_loops="dados/loops", variar=
     misturar_original = bool(np.isfinite(desvio_orig) and desvio_orig <= 15)
     # Loop só em música de andamento fixo (produzida no computador): um loop de
     # máquina sobre uma banda tocando ao vivo (andamento que varia, paradas,
-    # balanço próprio) soa descompassado mesmo com os golpes na grade, como em
-    # O Calhambeque. Nesses casos, substituição de bateria: cada golpe do
-    # baterista original vira uma amostra lo-fi no mesmo instante.
-    # Andamento fixo: a maior parte das batidas (>= metade) a menos de 25 ms
-    # de uma grade fixa. Em Count Me Out a batida deriva ±30 ms entre
-    # seções (81% na grade) e a substituição saía horrível: cada ataque
-    # da bateria trap virava uma caixa lo-fi, alta e picotada. Com o loop,
-    # seguindo as batidas detectadas, a bateria encaixa (0,4-1,0 nos
-    # trechos com bateria). As gravações ao vivo ficam em 9-15%.
+    # balanço próprio) soa descompassado mesmo com os golpes na grade. Nesses
+    # casos, substituição de bateria: cada golpe do baterista original vira
+    # uma amostra lo-fi no mesmo instante.
+    # Andamento fixo: pelo menos metade das batidas a menos de 25 ms de uma
+    # grade fixa. Músicas que derivam um pouco entre seções ainda passam e
+    # usam o loop seguindo as batidas detectadas; substituir cada ataque de
+    # uma bateria trap deixaria a caixa alta e picotada. Gravações ao vivo
+    # ficam em 9-15%.
     andamento_fixo = na_grade(enc["batidas"]) >= 0.5
     usar_loop = enc["nota"] >= a.encaixe_minimo and (andamento_fixo or a.bateria == "loop")
     if a.bateria in ("substituicao", "original"):
@@ -786,8 +765,7 @@ def produzir(partes, ajustes=None, semente=0, pasta_loops="dados/loops", variar=
                 canta = arranjo.suavizar((rms_v > 0.15 * np.percentile(rms_v, 95)).astype(float), SR / 512, ms=250)
                 canta = np.interp(np.arange(n_orig), np.arange(len(canta)) * 512, canta)
                 # O ciclo que se repete, tocado como frase. Sem ciclo, ficam os
-                # acordes: o riff nota a nota (harmonia.riff) foi rejeitado
-                # ("notas jogadas sem sentido", 4r Da Squaw, 2026-11-25).
+                # acordes (copiar o riff nota a nota soava como notas soltas).
                 secoes_orig = [dict(s, ini=s["ini"] * a.velocidade, fim=s["fim"] * a.velocidade) for s in secoes]
                 if a.teclado_estilo == "progressao":
                     g = hm.progressao(lista, tempos_musica, n_orig, SR, escala, afinacao, rng, alvos=alvos, canta=canta,
@@ -801,16 +779,14 @@ def produzir(partes, ajustes=None, semente=0, pasta_loops="dados/loops", variar=
                     nivel_db, sob_voz_db = a.gancho_db, a.gancho_sob_voz_db
                 if onde_rf.any():
                     # O riff no volume do resto original onde ele toca; os
-                    # acordes saem dali (o riff vira o teclado: com os dois,
-                    # em 4r Da Squaw, era "acorde de piano o tempo todo").
+                    # acordes saem dali (com os dois juntos, o piano não para).
                     rf *= 10 ** ((rms_db(estereo["other"][:, onde_rf > 0]) + a.teclado_db - rms_db(rf[:, onde_rf > 0])) / 20)
                     teclas = teclas * (1 - arranjo.suavizar(onde_rf, SR, ms=300)) + rf
                     # E o piano recua enquanto o rapper canta e volta nas pausas.
                     teclas = teclas * (1 - (1 - 10 ** (sob_voz_db / 20)) * canta) * 10 ** (nivel_db / 20)
-                    # Piso: a frase nunca fica, contra a voz, mais baixa que na
-                    # 4r Da Squaw aprovada. Em Neighbors o resto original fica
-                    # 11,5 dB abaixo da voz (na 4r, 2,7), e a frase no volume
-                    # dele ficava 21 dB abaixo da voz: "não dá para ouvir".
+                    # Piso: quando o resto original é muito mais baixo que a
+                    # voz, a frase no volume dele fica inaudível; ela sobe até
+                    # `gancho_piso_voz_db` contra a voz.
                     fala = (canta > 0.5) & (onde_rf > 0)
                     if fala.sum() > SR:
                         rel = rms_db(teclas[:, fala]) - rms_db(estereo["vocals"][:, fala])
@@ -869,7 +845,7 @@ def produzir(partes, ajustes=None, semente=0, pasta_loops="dados/loops", variar=
     g_bat, corte, corte_bat = (arranjo.suavizar(c, SR) for c in (g_bat, corte, corte_bat))
     # Voz: as mudanças de reverb entre seções deslizam em ~0,6 s, e o reverb
     # jogado na última palavra antes de cada virada entra em 0,4 s e sai em
-    # 1,5 s (antes era um corte seco de 80 ms, "abafava" e voltava de repente).
+    # 1,5 s (um corte seco soa como a voz sumindo e voltando).
     rev = np.maximum(arranjo.suavizar(rev, SR, ms=600), a.voz_sala)
     jogado = np.zeros(n)
     for fim_frase, b in zip(arranjo.fins_de_frase(mono(voz), SR, fronteiras), fronteiras):
@@ -930,9 +906,8 @@ def produzir(partes, ajustes=None, semente=0, pasta_loops="dados/loops", variar=
     vol_bat = a.volume_voz + float(np.clip(rms_db(estereo["drums"]) - r_voz + a.mais_que_original,
                                            a.volume_bateria - a.volume_voz, a.teto_bateria))
     # O teto da base deixa a voz na frente, mas sem tirar mais que
-    # `perda_maxima_db` do equilíbrio da original: em Chill Bill o 808 deixa
-    # a base 11,7 dB acima da voz, e o teto de +2 dB punha a voz 8 dB mais à
-    # frente que na original (a lo-fi do YouTube a põe 7 dB mais atrás).
+    # `perda_maxima_db` do equilíbrio da original: num trap com 808 alto, o
+    # teto fixo poria a voz muito mais à frente do que na própria original.
     base_orig = rms_db(estereo["bass"] + estereo["other"]) - r_voz
     vol_base = a.volume_voz + float(np.clip(base_orig + a.mais_que_original, a.volume_base - a.volume_voz,
                                             max(a.teto_base, base_orig - a.perda_maxima_db)))
@@ -1021,10 +996,9 @@ def atraso_na_grade(bateria, batidas, maximo=0.04):
 def posicoes_do_groove(bateria, batidas, fracao=0.7, minimo=0.15):
     """Onde a bateria bate (s): os golpes de fato e, em cada batida da grade,
     as posições em que o loop costuma bater (as que aparecem em >= `minimo`
-    das batidas). Em 4r Da Squaw o loop tem swing (o contratempo cai a 58%
-    da batida) e as notas do piano copiadas do teclado original caíam ora no
-    contratempo reto, ora no com swing; levadas a essas posições, seguem o
-    balanço da bateria."""
+    das batidas). Quando o loop tem swing, as notas do piano copiadas do
+    teclado original caem ora no contratempo reto, ora no com swing; levadas
+    a essas posições, seguem o balanço da bateria."""
     golpes = ataques_finos(bateria, fracao)
     b = np.asarray(batidas)
     if len(golpes) < 8 or len(b) < 4:
@@ -1107,9 +1081,8 @@ def afinar_grade(batidas, fase, loop_bpm, loop, meio, bateria_original, iteracoe
 
 
 def escolher_swing(batidas, fase, loop_bpm, loop, meio, ritmo_original, candidatos=(0.5, 0.54, 0.58, 0.62, 0.66)):
-    # ritmo_original: aqui, a bateria original da música (golpes fortes)
     """Testa valores de swing e fica com o que deixa os golpes da bateria nova
-    mais perto dos ataques da música (menor atraso mediano absoluto).
+    mais perto dos golpes fortes de `ritmo_original` (a bateria original).
     Estimar o swing pela posição dos ataques erra quando a música tem notas
     mais rápidas (semicolcheias) misturadas aos contratempos."""
     if isinstance(loop, str):
